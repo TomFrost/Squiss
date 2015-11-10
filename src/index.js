@@ -120,10 +120,10 @@ export class Squiss extends EventEmitter {
         });
         this._inFlight++;
         this.emit('message', message);
-        if (this._slotsAvailable()) {
-          this._getBatch();
-        }
       });
+      if (this._slotsAvailable()) {
+        this._getBatch();
+      }
     });
   }
 
