@@ -18,6 +18,7 @@ const optDefaults = {
 
 export class Squiss extends EventEmitter {
   constructor(opts = {}) {
+    super();
     this.sqs = new AWS.SQS(opts.awsConfig);
     this._queue = opts.queue;
     this._deleteBatchSize = Math.min(opts.deleteBatchSize || optDefaults.deleteBatchSize, 10);
