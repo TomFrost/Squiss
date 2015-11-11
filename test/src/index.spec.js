@@ -10,7 +10,7 @@ describe('index', () => {
       const inst = new Squiss({ queue: 'foo' });
       should.exist(inst);
     });
-    it('should fail if queue is not specified', () => {
+    it('fails if queue is not specified', () => {
       let errored = false;
       try {
         new Squiss();
