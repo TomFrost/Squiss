@@ -16,7 +16,7 @@ const optDefaults = {
   msgFormat: 'plain'
 };
 
-export class Squiss extends EventEmitter {
+export default class Squiss extends EventEmitter {
   constructor(opts = {}) {
     super();
     this.sqs = new AWS.SQS(opts.awsConfig);
