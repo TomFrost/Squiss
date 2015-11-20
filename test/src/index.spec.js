@@ -13,7 +13,7 @@ describe('index', () => {
   });
   describe('constructor', () => {
     it('creates a new Squiss instance', () => {
-      inst = new Squiss({ queue: 'foo' });
+      inst = new Squiss({ queueUrl: 'foo' });
       should.exist(inst);
     });
     it('fails if queue is not specified', () => {
@@ -29,7 +29,7 @@ describe('index', () => {
     });
     it('provides a configured sqs client instance', () => {
       inst = new Squiss({
-        queue: 'foo',
+        queueUrl: 'foo',
         awsConfig: {
           region: 'us-east-1'
         }
@@ -41,7 +41,7 @@ describe('index', () => {
   });
   describe('API', () => {
     it('reports the appropriate "running" status', () => {
-      inst = new Squiss({ queue: 'foo' });
+      inst = new Squiss({ queueUrl: 'foo' });
       inst._getBatch = () => {};
       inst.running.should.be.false;
       inst.start();

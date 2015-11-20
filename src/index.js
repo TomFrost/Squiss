@@ -33,15 +33,15 @@ export default class Squiss extends EventEmitter {
     this._delQueue = [];
     this._delTimer = null;
     this._sqsParams = {
-      QueueUrl: opts.queue,
+      QueueUrl: opts.queueUrl,
       MaxNumberOfMessages: this._receiveBatchSize,
       WaitTimeSeconds: opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
     };
     if (opts.visibilityTimeout) {
       this._sqsParams.VisibilityTimeout = opts.visibilityTimeout;
     }
-    if (!opts.queue) {
-      throw new Error('Squiss requires a "queue" option in the constructor');
+    if (!opts.queueUrl) {
+      throw new Error('Squiss requires a "queueUrl" option in the constructor');
     }
   }
 
