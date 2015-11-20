@@ -4,17 +4,23 @@
 
 import Squiss from 'src/index';
 
+let inst = null;
+
 describe('index', () => {
+  afterEach(() => {
+    if (inst) inst.stop();
+    inst = null;
+  });
   describe('constructor', () => {
     it('creates a new Squiss instance', () => {
-      const inst = new Squiss({ queue: 'foo' });
+      inst = new Squiss({ queue: 'foo' });
       should.exist(inst);
     });
     it('fails if queue is not specified', () => {
       let errored = false;
       try {
         new Squiss();
-      } catch(e) {
+      } catch (e) {
         should.exist(e);
         e.should.be.instanceOf(Error);
         errored = true;
@@ -22,7 +28,7 @@ describe('index', () => {
       errored.should.be.true;
     });
     it('provides a configured sqs client instance', () => {
-      const inst = new Squiss({
+      inst = new Squiss({
         queue: 'foo',
         awsConfig: {
           region: 'us-east-1'
@@ -31,6 +37,15 @@ describe('index', () => {
       inst.should.have.property('sqs');
       inst.sqs.should.be.an.Object;
       inst.sqs.config.region.should.equal('us-east-1');
+    });
+  });
+  describe('API', () => {
+    it('reports the appropriate "running" status', () => {
+      inst = new Squiss({ queue: 'foo' });
+      inst._getBatch = () => {};
+      inst.running.should.be.false;
+      inst.start();
+      inst.running.should.be.true;
     });
   });
 });

@@ -80,6 +80,7 @@ export default class Squiss extends EventEmitter {
 
   start() {
     if (!this._running) {
+      this._running = true;
       this._getBatch();
     }
   }
