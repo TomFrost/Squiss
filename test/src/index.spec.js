@@ -3,6 +3,7 @@
  */
 
 import Squiss from 'src/index';
+import SQSStub from 'test/stubs/SQSStub';
 
 let inst = null;
 
@@ -46,6 +47,17 @@ describe('index', () => {
       inst.running.should.be.false;
       inst.start();
       inst.running.should.be.true;
+    });
+    it('receives a batch of messages under the max', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst.sqs = new SQSStub(5);
+      inst.start();
+      inst.on('message', () => msgs++);
+      setImmediate(() => {
+        msgs.should.equal(5);
+        done();
+      });
     });
   });
 });

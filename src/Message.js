@@ -2,7 +2,7 @@
  * Copyright (c) 2015 TechnologyAdvice
  */
 
-export class Message {
+class Message {
   constructor(opts) {
     this.raw = opts.msg;
     this.body = opts.msg.Body;
@@ -39,3 +39,5 @@ Message._formatMessage = (msg, format) => {
 Message._snsUnwrap = (msg) => {
   return JSON.parse(msg).Message;
 };
+
+export default Message;
