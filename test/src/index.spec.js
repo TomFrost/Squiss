@@ -59,5 +59,65 @@ describe('index', () => {
         done();
       });
     });
+    it('receives batches of messages', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst.sqs = new SQSStub(15);
+      inst.start();
+      inst.on('message', () => msgs++);
+      setImmediate(() => {
+        msgs.should.equal(10);
+        setImmediate(() => {
+          msgs.should.equal(15);
+          done();
+        });
+      });
+    });
+    it('observes the maxInFlight cap', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 });
+      inst.sqs = new SQSStub(15);
+      inst.start();
+      inst.on('message', () => msgs++);
+      setImmediate(() => {
+        msgs.should.equal(10);
+        setImmediate(() => {
+          msgs.should.equal(10);
+          done();
+        });
+      });
+    });
+    it('deletes messages', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst.sqs = new SQSStub(5);
+      sinon.spy(inst.sqs, 'deleteMessageBatch');
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setImmediate(() => {
+        msgs.should.have.length(5);
+        inst.deleteMessage(msgs.pop());
+        setTimeout(() => {
+          inst.sqs.deleteMessageBatch.should.be.called;
+          done();
+        }, 10);
+      });
+    });
+    it('reports the correct number of inFlight messages', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst.sqs = new SQSStub(5);
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setImmediate(() => {
+        inst.inFlight.should.equal(5);
+        inst.deleteMessage(msgs.pop());
+        inst.handledMessage();
+        setImmediate(() => {
+          inst.inFlight.should.equal(3);
+          done();
+        });
+      });
+    });
   });
 });
