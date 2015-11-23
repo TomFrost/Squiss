@@ -14,7 +14,11 @@ describe('index', () => {
   });
   describe('constructor', () => {
     it('creates a new Squiss instance', () => {
-      inst = new Squiss({ queueUrl: 'foo' });
+      inst = new Squiss({
+        queueUrl: 'foo',
+        unwrapSns: true,
+        visibilityTimeout: 10
+      });
       should.exist(inst);
     });
     it('fails if queue is not specified', () => {
@@ -40,7 +44,7 @@ describe('index', () => {
       inst.sqs.config.region.should.equal('us-east-1');
     });
   });
-  describe('API', () => {
+  describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {
       inst = new Squiss({ queueUrl: 'foo' });
       inst._getBatch = () => {};
@@ -87,6 +91,24 @@ describe('index', () => {
         });
       });
     });
+    it('reports the correct number of inFlight messages', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst.sqs = new SQSStub(5);
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setImmediate(() => {
+        inst.inFlight.should.equal(5);
+        inst.deleteMessage(msgs.pop());
+        inst.handledMessage();
+        setImmediate(() => {
+          inst.inFlight.should.equal(3);
+          done();
+        });
+      });
+    });
+  });
+  describe('Deleting', () => {
     it('deletes messages using internal API', (done) => {
       let msgs = [];
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
@@ -117,22 +139,6 @@ describe('index', () => {
           inst.sqs.deleteMessageBatch.should.be.called;
           done();
         }, 10);
-      });
-    });
-    it('reports the correct number of inFlight messages', (done) => {
-      let msgs = [];
-      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
-      inst.sqs = new SQSStub(5);
-      inst.start();
-      inst.on('message', (msg) => msgs.push(msg));
-      setImmediate(() => {
-        inst.inFlight.should.equal(5);
-        inst.deleteMessage(msgs.pop());
-        inst.handledMessage();
-        setImmediate(() => {
-          inst.inFlight.should.equal(3);
-          done();
-        });
       });
     });
   });
