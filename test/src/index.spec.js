@@ -166,5 +166,19 @@ describe('index', () => {
         }, 20);
       }, 5);
     });
+    it('deletes immediately with batch size=1', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 });
+      inst.sqs = new SQSStub(1);
+      sinon.spy(inst.sqs, 'deleteMessageBatch');
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setImmediate(() => {
+        inst.stop();
+        msgs[0].del();
+        inst.sqs.deleteMessageBatch.should.be.calledOnce;
+        done();
+      });
+    });
   });
 });

@@ -24,9 +24,9 @@ class Message {
     this.raw = opts.msg;
     this.body = opts.msg.Body;
     if (opts.unwrapSns) {
-      this.body = Message._snsUnwrap(this.msg);
+      this.body = Message._snsUnwrap(this.body);
     }
-    this.body = Message._formatMessage(opts.msg, opts.msgFormat);
+    this.body = Message._formatMessage(this.body, opts.msgFormat);
     this._squiss = opts.squiss;
     this._handled = false;
   }
