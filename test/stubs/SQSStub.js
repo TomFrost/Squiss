@@ -3,8 +3,9 @@
  */
 
 class SQSStub {
-  constructor(msgCount) {
+  constructor(msgCount, timeout) {
     this.msgs = [];
+    this.timeout = timeout === undefined ? 20 : timeout;
     this.msgCount = msgCount;
     for (let i = 0; i < msgCount; i++) {
       this.msgs.push({
@@ -36,8 +37,10 @@ class SQSStub {
   }
 
   receiveMessage(query, cb) {
-    let res = this.msgs.splice(0, query.MaxNumberOfMessages);
-    setImmediate(cb.bind(null, null, {Messages: res}));
+    const msgs = this.msgs.splice(0, query.MaxNumberOfMessages);
+    const done = cb.bind(null, null, {Messages: msgs});
+    if (msgs.length) setImmediate(done);
+    else setTimeout(done, this.timeout * 1000);
   }
 }
 
