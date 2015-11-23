@@ -87,7 +87,7 @@ describe('index', () => {
         });
       });
     });
-    it('deletes messages', (done) => {
+    it('deletes messages using internal API', (done) => {
       let msgs = [];
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
       inst.sqs = new SQSStub(5);
@@ -97,6 +97,22 @@ describe('index', () => {
       setImmediate(() => {
         msgs.should.have.length(5);
         inst.deleteMessage(msgs.pop());
+        setTimeout(() => {
+          inst.sqs.deleteMessageBatch.should.be.called;
+          done();
+        }, 10);
+      });
+    });
+    it('deletes messages using Message API', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst.sqs = new SQSStub(5);
+      sinon.spy(inst.sqs, 'deleteMessageBatch');
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setImmediate(() => {
+        msgs.should.have.length(5);
+        msgs.pop().del();
         setTimeout(() => {
           inst.sqs.deleteMessageBatch.should.be.called;
           done();
