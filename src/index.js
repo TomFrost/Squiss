@@ -167,8 +167,7 @@ export default class Squiss extends EventEmitter {
     this.sqs.deleteMessageBatch(delParams, (err, data) => {
       if (err) {
         this.emit('error', err);
-      }
-      if (data.Failed && data.Failed.length) {
+      } else if (data.Failed && data.Failed.length) {
         data.Failed.forEach((fail) => this.emit('delError', fail));
       }
     });

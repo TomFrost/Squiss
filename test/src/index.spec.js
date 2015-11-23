@@ -181,4 +181,52 @@ describe('index', () => {
       });
     });
   });
+  describe('Failures', () => {
+    it('emits delError when a message fails to delete', (done) => {
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 });
+      inst.sqs = new SQSStub(1);
+      inst.on('delError', (fail) => {
+        should.exist(fail);
+        fail.should.be.an.Object;
+        done();
+      });
+      inst.deleteMessage({
+        raw: {
+          MessageId: 'foo',
+          ReceiptHandle: 'bar'
+        }
+      });
+    });
+    it('emits error when delete call fails', (done) => {
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 });
+      inst.sqs = new SQSStub(1);
+      inst.sqs.deleteMessageBatch = (params, cb) => {
+        cb(new Error('test'));
+      };
+      inst.on('error', (err) => {
+        should.exist(err);
+        err.should.be.an.Error;
+        done();
+      });
+      inst.deleteMessage({
+        raw: {
+          MessageId: 'foo',
+          ReceiptHandle: 'bar'
+        }
+      });
+    });
+    it('emits error when receive call fails', (done) => {
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst.sqs = new SQSStub(1);
+      inst.sqs.receiveMessage = (params, cb) => {
+        cb(new Error('test'));
+      };
+      inst.on('error', (err) => {
+        should.exist(err);
+        err.should.be.an.Error;
+        done();
+      });
+      inst.start();
+    });
+  });
 });
