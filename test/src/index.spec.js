@@ -52,6 +52,14 @@ describe('index', () => {
       inst.start();
       inst.running.should.be.true;
     });
+    it('treats start() as idempotent', () => {
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst._getBatch = () => {};
+      inst.running.should.be.false;
+      inst.start();
+      inst.start();
+      inst.running.should.be.true;
+    });
     it('receives a batch of messages under the max', (done) => {
       let msgs = 0;
       inst = new Squiss({ queueUrl: 'foo' });
@@ -120,7 +128,7 @@ describe('index', () => {
         msgs.should.have.length(5);
         inst.deleteMessage(msgs.pop());
         setTimeout(() => {
-          inst.sqs.deleteMessageBatch.should.be.called;
+          inst.sqs.deleteMessageBatch.should.be.calledOnce;
           done();
         }, 10);
       });
@@ -136,10 +144,27 @@ describe('index', () => {
         msgs.should.have.length(5);
         msgs.pop().del();
         setTimeout(() => {
-          inst.sqs.deleteMessageBatch.should.be.called;
+          inst.sqs.deleteMessageBatch.should.be.calledOnce;
           done();
         }, 10);
       });
+    });
+    it('deletes messages in batches', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 10 });
+      inst.sqs = new SQSStub(15);
+      sinon.spy(inst.sqs, 'deleteMessageBatch');
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setTimeout(() => {
+        inst.stop();
+        msgs.forEach((msg) => msg.del());
+        inst.sqs.deleteMessageBatch.should.be.calledOnce;
+        setTimeout(() => {
+          inst.sqs.deleteMessageBatch.should.be.calledTwice;
+          done();
+        }, 20);
+      }, 5);
     });
   });
 });
