@@ -70,7 +70,7 @@ export default class Squiss extends EventEmitter {
 
   handledMessage() {
     this._inFlight--;
-    if (this._running || this._slotsAvailable()) {
+    if (this._running && this._slotsAvailable()) {
       this._getBatch();
     }
     if (!this._inFlight) {
