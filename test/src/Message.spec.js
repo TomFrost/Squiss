@@ -18,14 +18,14 @@ describe('Message', () => {
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       unwrapSns: true,
-      msgFormat: 'plain'
+      bodyFormat: 'plain'
     });
     msg.should.have.property('body').equal('foo');
   });
   it('parses JSON', () => {
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
-      msgFormat: 'json'
+      bodyFormat: 'json'
     });
     msg.should.have.property('body');
     msg.body.should.be.an.Object;
@@ -35,7 +35,7 @@ describe('Message', () => {
   it('calls Squiss.deleteMessage on delete', (done) => {
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
-      msgFormat: 'json',
+      bodyFormat: 'json',
       squiss: {
         deleteMessage: (toDel) => {
           toDel.should.equal(msg);
@@ -48,7 +48,7 @@ describe('Message', () => {
   it('calls Squiss.handledMessage on keep', (done) => {
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
-      msgFormat: 'json',
+      bodyFormat: 'json',
       squiss: {
         handledMessage: () => done()
       }
@@ -59,7 +59,7 @@ describe('Message', () => {
     let calls = 0;
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
-      msgFormat: 'json',
+      bodyFormat: 'json',
       squiss: {
         deleteMessage: () => calls += 1,
         handledMessage: () => calls += 10

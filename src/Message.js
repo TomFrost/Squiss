@@ -15,7 +15,7 @@ class Message {
    * @param {boolean} [opts.unwrapSns=false] Set to `true` to denote that each message should be treated as though
    *    it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS
    *    metadata wrapper.
-   * @param {string} opts.msgFormat "plain" to not parse the message body, or "json" to pass it through JSON.parse
+   * @param {string} opts.bodyFormat "plain" to not parse the message body, or "json" to pass it through JSON.parse
    *    on creation
    * @param {Squiss} opts.squiss The squiss instance responsible for retrieving this message. This will be used to
    *    delete the message and update inFlight count tracking.
@@ -26,7 +26,7 @@ class Message {
     if (opts.unwrapSns) {
       this.body = Message._snsUnwrap(this.body);
     }
-    this.body = Message._formatMessage(this.body, opts.msgFormat);
+    this.body = Message._formatMessage(this.body, opts.bodyFormat);
     this._squiss = opts.squiss;
     this._handled = false;
   }

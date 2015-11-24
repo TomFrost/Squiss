@@ -4,7 +4,7 @@ High-volume Amazon SQS Poller for Node.js
 ```javascript
 const poller = new Squiss({
   queueName: 'my-sqs-queue',
-  msgFormat: 'json',
+  bodyFormat: 'json',
   unwrapSns: true,
   maxInFlight: 500
 });
@@ -35,7 +35,7 @@ Don't be scared of `new` -- you need to create a new Squiss instance for every q
 - **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or maxInFlight, whichever is lower.
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
-- **opts.msgFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
+- **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.visibilityTimeout** The SQS VisibilityTimeout to apply to each message. This is the number of seconds that each received message should be made inaccessible to other receive calls, so that a message will not be received more than once before it is processed and deleted. If not specified, the default for the SQS queue will be used.
 
 ### squiss.deleteMessage(Message)
@@ -71,7 +71,7 @@ If any of the AWS API calls outrightly fail, `error` is emitted. If you don't ha
 Emitted every time Squiss pulls a new message from the queue. The Squiss Message object handed back has the following methods and properties:
 
 #### {Object|string} message.body
-The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `msgFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
+The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `bodyFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
 
 #### message.del()
 Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.

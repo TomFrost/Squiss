@@ -18,7 +18,7 @@ const optDefaults = {
   deleteWaitMs: 2000,
   maxInFlight: 100,
   unwrapSns: false,
-  msgFormat: 'plain'
+  bodyFormat: 'plain'
 };
 
 /**
@@ -54,7 +54,7 @@ export default class Squiss extends EventEmitter {
    * @param {boolean} [opts.unwrapSns=false] Set to `true` to denote that Squiss should treat each message as though
    *    it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS
    *    metadata wrapper.
-   * @param {string} [opts.msgFormat="plain"] The format of the incoming message. Set to "json" to automatically call
+   * @param {string} [opts.bodyFormat="plain"] The format of the incoming message. Set to "json" to automatically call
    *    `JSON.parse()` on each incoming message.
    * @param {number} [opts.visibilityTimeout] The SQS VisibilityTimeout to apply to each message. This is the number of
    *    seconds that each received message should be made inaccessible to other receive calls, so that a message will
@@ -70,7 +70,7 @@ export default class Squiss extends EventEmitter {
     this._maxInFlight = opts.maxInFlight || optDefaults.maxInFlight;
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight, 10);
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
-    this._msgFormat = opts.msgFormat || optDefaults.msgFormat;
+    this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
     this._requesting = false;
     this._running = false;
     this._inFlight = 0;
@@ -206,7 +206,7 @@ export default class Squiss extends EventEmitter {
         const message = new Message({
           squiss: this,
           unwrapSns: this._unwrapSns,
-          msgFormat: this._msgFormat,
+          bodyFormat: this._bodyFormat,
           msg
         });
         this._inFlight++;
