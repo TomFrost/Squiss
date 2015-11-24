@@ -1,4 +1,4 @@
-# Squiss 
+# Squiss [![Build Status](https://travis-ci.org/TechnologyAdvice/Squiss.svg?branch=master)](https://travis-ci.org/TechnologyAdvice/Squiss) [![Code Climate](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/gpa.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss) [![Test Coverage](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/coverage.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss/coverage)
 High-volume Amazon SQS Poller for Node.js
 
 ```javascript
