@@ -74,7 +74,7 @@ Emitted every time Squiss pulls a new message from the queue. The Squiss Message
 The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `msgFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
 
 #### message.del()
-Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Quiss delivers in order to maintain an accurate inFlight count.
+Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.
 
 #### message.keep()
 Instructs Squiss that you're not planning to delete a message, but it should no longer be considered "in-flight". Either this or `message.keep()` _must_ be called on each message Quiss delivers in order to maintain an accurate inFlight count.
