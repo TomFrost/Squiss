@@ -29,7 +29,12 @@ export default class Squiss extends EventEmitter {
   /**
    * Creates a new Squiss object.
    * @param {Object} opts A map of options to configure this instance
-   * @param {string} opts.queueUrl The URL of the queue to be polled
+   * @param {string} [opts.queueUrl] The URL of the queue to be polled. If not specified, opts.queueName is
+   *    required.
+   * @param {string} [opts.queueName] The name of the queue to be polled. Used only if opts.queueUrl is not
+   *    specified.
+   * @param {string} [opts.accountNumber] If a queueName is specified, the accountNumber of the queue
+   *    owner can optionally be specified to access a queue in a different AWS account.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
    *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
    *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -76,8 +81,11 @@ export default class Squiss extends EventEmitter {
     if (opts.visibilityTimeout) {
       this._sqsParams.VisibilityTimeout = opts.visibilityTimeout;
     }
+    if (!opts.queueUrl && !opts.queueName) {
+      throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
+    }
     if (!opts.queueUrl) {
-      throw new Error('Squiss requires a "queueUrl" option in the constructor');
+      this._getQueueUrl(opts.queueName, opts.accountNumber);
     }
   }
 
@@ -135,10 +143,13 @@ export default class Squiss extends EventEmitter {
   }
 
   /**
-   * Starts the poller.
+   * Starts the poller. If this instance is still retrieving the queueUrl, Squiss will automatically
+   * re-call this function when the queueUrl has been set up.
    */
   start() {
-    if (!this._running) {
+    if (this._urlWaiting) {
+      this.on('ready', () => this.start());
+    } else if (!this._running) {
       this._running = true;
       this._getBatch();
     }
@@ -200,6 +211,33 @@ export default class Squiss extends EventEmitter {
       });
       if (this._running && this._slotsAvailable()) {
         this._getBatch();
+      }
+    });
+  }
+
+  /**
+   * Gets the queueUrl for a given queue and sets this instance up to use it. Any calls to
+   * {@link #start} will wait until this function completes to begin polling.
+   *
+   * Emits `ready` when the queueUrl is retrieved and set up; `error` if the AWS GetQueueURL
+   * call fails.
+   * @param {string} queueName The name of the queue for which to retrieve the URL
+   * @param {string} [accountNumber] Optionally, the AWS account number of the queue owner
+   * @private
+   */
+  _getQueueUrl(queueName, accountNumber) {
+    this._urlWaiting = true;
+    const params = { QueueName: queueName };
+    if (accountNumber) {
+      params.QueueOwnerAWSAccountId = accountNumber;
+    }
+    this.sqs.getQueueUrl(params, (err, data) => {
+      if (err) this.emit('error', err);
+      else {
+        this._urlWaiting = false;
+        this._queueUrl = data.QueueUrl;
+        this._sqsParams.QueueUrl = data.QueueUrl;
+        this.emit('ready');
       }
     });
   }

@@ -2,15 +2,18 @@
  * Copyright (c) 2015 TechnologyAdvice
  */
 
+import AWS from 'aws-sdk';
 import Squiss from 'src/index';
 import SQSStub from 'test/stubs/SQSStub';
 
 let inst = null;
+const origSQS = AWS.SQS;
 
 describe('index', () => {
   afterEach(() => {
     if (inst) inst.stop();
     inst = null;
+    AWS.SQS = origSQS;
   });
   describe('constructor', () => {
     it('creates a new Squiss instance', () => {
@@ -43,8 +46,45 @@ describe('index', () => {
       inst.sqs.should.be.an.Object;
       inst.sqs.config.region.should.equal('us-east-1');
     });
+    it('retrieves the queueUrl when a queueName is supplied', (done) => {
+      AWS.SQS = class SQS {
+        getQueueUrl(params, cb) {
+          params.QueueName.should.equal('foo');
+          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }));
+        }
+      };
+      inst = new Squiss({ queueName: 'foo' });
+      inst.on('ready', done);
+    });
+    it('retrieves the queueUrl from a different account', (done) => {
+      AWS.SQS = class SQS {
+        getQueueUrl(params, cb) {
+          params.QueueName.should.equal('foo');
+          params.QueueOwnerAWSAccountId.should.equal('bar');
+          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }));
+        }
+      };
+      inst = new Squiss({
+        queueName: 'foo',
+        accountNumber: 'bar'
+      });
+      inst.on('ready', done);
+    });
   });
   describe('Receiving', () => {
+    it('waits to run until a queueUrl is retrieved', (done) => {
+      AWS.SQS = class SQS {
+        getQueueUrl(params, cb) {
+          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }));
+        }
+      };
+      inst = new Squiss({ queueName: 'foo' });
+      inst.sqs = new SQSStub(1);
+      inst.start();
+      inst.on('ready', () => {
+        inst.on('message', () => done());
+      });
+    });
     it('reports the appropriate "running" status', () => {
       inst = new Squiss({ queueUrl: 'foo' });
       inst._getBatch = () => {};
@@ -227,6 +267,19 @@ describe('index', () => {
         done();
       });
       inst.start();
+    });
+    it('emits error when GetQueueURL call fails', (done) => {
+      AWS.SQS = class SQS {
+        getQueueUrl(params, cb) {
+          setImmediate(cb.bind(null, new Error('test')));
+        }
+      };
+      inst = new Squiss({ queueName: 'foo' });
+      inst.on('error', (err) => {
+        should.exist(err);
+        err.should.be.an.Error;
+        done();
+      });
     });
   });
 });
