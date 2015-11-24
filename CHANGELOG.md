@@ -8,4 +8,4 @@ Nothing yet!
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Cryptex/compare/0.1.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/0.1.0...HEAD
