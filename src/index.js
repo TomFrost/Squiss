@@ -29,6 +29,9 @@ export default class Squiss extends EventEmitter {
   /**
    * Creates a new Squiss object.
    * @param {Object} opts A map of options to configure this instance
+   * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
+   *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
+   *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
    * @param {string} [opts.queueUrl] The URL of the queue to be polled. If not specified, opts.queueName is
    *    required.
    * @param {string} [opts.queueName] The name of the queue to be polled. Used only if opts.queueUrl is not

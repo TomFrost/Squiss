@@ -1,7 +1,7 @@
 {
   "name": "squiss",
   "version": "0.1.0",
-  "description": "Large-pipe SQS poller",
+  "description": "High-volume SQS poller",
   "main": "build/index.js",
   "scripts": {
     "clean": "rm -rf node_modules build coverage",
