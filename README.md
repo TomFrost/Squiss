@@ -29,6 +29,7 @@ Don't be scared of `new` -- you need to create a new Squiss instance for every q
 - **opts.queueUrl** The URL of the queue to be polled. If not specified, opts.queueName is required.
 - **opts.queueName** The name of the queue to be polled. Used only if opts.queueUrl is not specified.
 - **opts.accountNumber** If a queueName is specified, the accountNumber of the queue owner can optionally be specified to access a queue in a different AWS account.
+- **opts.correctQueueUrl** _Default false._ Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing against a stubbed SQS service, such as ElasticMQ.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS
 - **opts.maxInFlight** _Default 100._ The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled.

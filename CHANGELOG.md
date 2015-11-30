@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Added
+- opts.correctQueueUrl added to support dynamic testing environments.
 
 ## [v0.2.0]
 ### Changed

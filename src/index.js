@@ -5,11 +5,12 @@
 import AWS from 'aws-sdk';
 import { EventEmitter } from 'events';
 import Message from './Message';
+import url from 'url';
 
 /**
  * Option defaults.
  * @type {{receiveBatchSize: number, receiveWaitTimeSecs: number, deleteBatchSize: number, deleteWaitMs: number,
- *   maxInFlight: number, unwrapSns: boolean, msgFormat: string}}
+ *   maxInFlight: number, unwrapSns: boolean, msgFormat: string, correctQueueUrl: boolean}}
  */
 const optDefaults = {
   receiveBatchSize: 10,
@@ -18,7 +19,8 @@ const optDefaults = {
   deleteWaitMs: 2000,
   maxInFlight: 100,
   unwrapSns: false,
-  bodyFormat: 'plain'
+  bodyFormat: 'plain',
+  correctQueueUrl: false
 };
 
 /**
@@ -38,6 +40,9 @@ export default class Squiss extends EventEmitter {
    *    specified.
    * @param {string} [opts.accountNumber] If a queueName is specified, the accountNumber of the queue
    *    owner can optionally be specified to access a queue in a different AWS account.
+   * @param {boolean} [opts.correctQueueUrl=false] Changes the protocol, host, and port of the queue URL to match the
+   *    configured SQS endpoint, applicable only if opts.queueName is specified. This can be useful for testing against
+   *    a stubbed SQS service, such as ElasticMQ.
    * @param {number} [opts.deleteBatchSize=10] The number of messages to delete at one time. Squiss will trigger a
    *    batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued
    *    delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
@@ -81,6 +86,7 @@ export default class Squiss extends EventEmitter {
       MaxNumberOfMessages: this._receiveBatchSize,
       WaitTimeSeconds: opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
     };
+    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl;
     if (opts.visibilityTimeout) {
       this._sqsParams.VisibilityTimeout = opts.visibilityTimeout;
     }
@@ -238,8 +244,15 @@ export default class Squiss extends EventEmitter {
       if (err) this.emit('error', err);
       else {
         this._urlWaiting = false;
-        this._queueUrl = data.QueueUrl;
-        this._sqsParams.QueueUrl = data.QueueUrl;
+        let queueUrl = data.QueueUrl;
+        if (this._correctQueueUrl) {
+          let newUrl = url.parse(this.sqs.config.endpoint);
+          const parsedQueueUrl = url.parse(queueUrl);
+          newUrl.pathname = parsedQueueUrl.pathname;
+          queueUrl = url.format(newUrl);
+        }
+        this._queueUrl = queueUrl;
+        this._sqsParams.QueueUrl = queueUrl;
         this.emit('ready');
       }
     });

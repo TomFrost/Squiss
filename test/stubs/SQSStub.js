@@ -7,6 +7,10 @@ class SQSStub {
     this.msgs = [];
     this.timeout = timeout === undefined ? 20 : timeout;
     this.msgCount = msgCount;
+    this.config = {
+      region: 'us-east-1',
+      endpoint: 'http://foo.bar'
+    };
     for (let i = 0; i < msgCount; i++) {
       this.msgs.push({
         MessageId: `id_${i}`,
@@ -34,6 +38,14 @@ class SQSStub {
       }
     });
     setImmediate(cb.bind(null, null, res));
+  }
+
+  getQueueUrl(params, cb) {
+    setImmediate(() => {
+      cb(null, {
+        QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
+      });
+    });
   }
 
   receiveMessage(query, cb) {
