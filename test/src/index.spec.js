@@ -282,4 +282,15 @@ describe('index', () => {
       });
     });
   });
+  describe('Testing', () => {
+    it('allows queue URLs to be corrected to the endpoint hostname', (done) => {
+      AWS.SQS = function() { return new SQSStub(1); };
+      inst = new Squiss({ queueName: 'foo', correctQueueUrl: true });
+      inst.sqs = new SQSStub(1);
+      inst.on('ready', () => {
+        inst._queueUrl.should.equal('http://foo.bar/queues/foo');
+        done();
+      });
+    });
+  });
 });
