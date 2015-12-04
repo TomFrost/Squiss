@@ -50,7 +50,7 @@ class SQSStub {
 
   receiveMessage(query, cb) {
     const msgs = this.msgs.splice(0, query.MaxNumberOfMessages);
-    const done = cb.bind(null, null, {Messages: msgs});
+    const done = cb.bind(null, null, msgs.length ? {Messages: msgs} : {});
     if (msgs.length) setImmediate(done);
     else setTimeout(done, this.timeout * 1000);
   }

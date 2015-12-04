@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Fixed
+- Squiss no longer crashes when no messages are found. Apparently we should have said "high volume only" instead of just "high volume".
 
 ## [v0.3.0]
 ### Added

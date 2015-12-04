@@ -208,16 +208,18 @@ export default class Squiss extends EventEmitter {
         this.emit('error', err);
         return;
       }
-      data.Messages.forEach((msg) => {
-        const message = new Message({
-          squiss: this,
-          unwrapSns: this._unwrapSns,
-          bodyFormat: this._bodyFormat,
-          msg
+      if (data && data.Messages) {
+        data.Messages.forEach((msg) => {
+          const message = new Message({
+            squiss: this,
+            unwrapSns: this._unwrapSns,
+            bodyFormat: this._bodyFormat,
+            msg
+          });
+          this._inFlight++;
+          this.emit('message', message);
         });
-        this._inFlight++;
-        this.emit('message', message);
-      });
+      }
       if (this._running && this._slotsAvailable()) {
         this._getBatch();
       }
