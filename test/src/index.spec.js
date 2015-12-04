@@ -125,6 +125,16 @@ describe('index', () => {
         });
       });
     });
+    it('receives no messages', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst.start();
+      inst.on('message', () => msgs++);
+      setImmediate(() => {
+        msgs.should.equal(0);
+        done();
+      });
+    });
     it('observes the maxInFlight cap', (done) => {
       let msgs = 0;
       inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 });
