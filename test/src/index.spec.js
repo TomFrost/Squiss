@@ -128,12 +128,13 @@ describe('index', () => {
     it('receives no messages', (done) => {
       let msgs = 0;
       inst = new Squiss({ queueUrl: 'foo' });
+      inst.sqs = new SQSStub(0, 0);
       inst.start();
       inst.on('message', () => msgs++);
-      setImmediate(() => {
+      setTimeout(() => {
         msgs.should.equal(0);
         done();
-      });
+      }, 5);
     });
     it('observes the maxInFlight cap', (done) => {
       let msgs = 0;
