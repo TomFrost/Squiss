@@ -125,16 +125,31 @@ describe('index', () => {
         });
       });
     });
-    it('receives no messages', (done) => {
+    it('receives no messages (no empty event)', (done) => {
       let msgs = 0;
+      let emptyEvt = 0;
       inst = new Squiss({ queueUrl: 'foo' });
       inst.sqs = new SQSStub(0, 0);
       inst.start();
       inst.on('message', () => msgs++);
+      inst.on('queueEmpty', () => emptyEvt++);
       setTimeout(() => {
         msgs.should.equal(0);
+        emptyEvt.should.equal(0);
         done();
       }, 5);
+    });
+    it('emits queueEmpty event with no messages when option is set', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo', emptyEvent: true });
+      inst.sqs = new SQSStub(0, 0);
+      inst.start();
+      inst.on('message', () => msgs++);
+      inst.on('queueEmpty', () => {
+        msgs.should.equal(0);
+        inst.stop();
+        done();
+      });
     });
     it('observes the maxInFlight cap', (done) => {
       let msgs = 0;

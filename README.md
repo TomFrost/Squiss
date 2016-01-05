@@ -17,7 +17,7 @@ poller.on('message', (msg) => {
 ```
 
 ## How it works
-Squiss aims to process as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will attempt to keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time. 
+Squiss aims to process as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will attempt to keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.
 
 ## Functions
 
@@ -38,12 +38,13 @@ Don't be scared of `new` -- you need to create a new Squiss instance for every q
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.visibilityTimeout** The SQS VisibilityTimeout to apply to each message. This is the number of seconds that each received message should be made inaccessible to other receive calls, so that a message will not be received more than once before it is processed and deleted. If not specified, the default for the SQS queue will be used.
+- **opts.emptyEvent** _Default false._ Set to `true` if you would like Squiss to emit a "queueEmpty" event whenever it returns no messages when attempting to get a batch. This is mostly useful when testing.
 
 ### squiss.deleteMessage(Message)
 Deletes a message. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
 ### squiss.handledMessage()
-Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this. 
+Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this.
 
 ### squiss.start()
 Starts polling SQS for new messages. Each new message is handed off in the `message` event.
@@ -67,6 +68,9 @@ object handed to you in this event is the AWS failure object described in the [S
 
 ### error {Error}
 If any of the AWS API calls outrightly fail, `error` is emitted. If you don't have a listener on `error`, per Node.js's structure, the error will be treated as uncaught and will crash your app.
+
+### queueEmpty
+A `queueEmpty` is emitted when no messages are received from getBatch and the emptyEvent options is set to `true`
 
 ### message {Message}
 Emitted every time Squiss pulls a new message from the queue. The Squiss Message object handed back has the following methods and properties:

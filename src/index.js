@@ -20,7 +20,8 @@ const optDefaults = {
   maxInFlight: 100,
   unwrapSns: false,
   bodyFormat: 'plain',
-  correctQueueUrl: false
+  correctQueueUrl: false,
+  emptyEvent: false
 };
 
 /**
@@ -76,6 +77,7 @@ export default class Squiss extends EventEmitter {
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight, 10);
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
     this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
+    this._emptyEvent = opts.emptyEvent || optDefaults.emptyEvent;
     this._requesting = false;
     this._running = false;
     this._inFlight = 0;
@@ -219,6 +221,8 @@ export default class Squiss extends EventEmitter {
           this._inFlight++;
           this.emit('message', message);
         });
+      } else if (this._emptyEvent) {
+        this.emit('queueEmpty');
       }
       if (this._running && this._slotsAvailable()) {
         this._getBatch();
