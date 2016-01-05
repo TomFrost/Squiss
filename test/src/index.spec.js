@@ -127,14 +127,12 @@ describe('index', () => {
     });
     it('receives no messages', (done) => {
       let msgs = 0;
-      let emptyEvt = 0;
       inst = new Squiss({ queueUrl: 'foo' });
       inst.sqs = new SQSStub(0, 0);
       inst.start();
       inst.on('message', () => msgs++);
       setTimeout(() => {
         msgs.should.equal(0);
-        emptyEvt.should.equal(0);
         done();
       }, 5);
     });
