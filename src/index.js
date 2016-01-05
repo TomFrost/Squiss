@@ -219,6 +219,8 @@ export default class Squiss extends EventEmitter {
           this._inFlight++;
           this.emit('message', message);
         });
+      } else {
+        this.emit('queueEmpty');
       }
       if (this._running && this._slotsAvailable()) {
         this._getBatch();

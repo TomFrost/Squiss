@@ -136,6 +136,18 @@ describe('index', () => {
         done();
       }, 5);
     });
+    it('emits queueEmpty event with no messages', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo' });
+      inst.sqs = new SQSStub(0, 0);
+      inst.start();
+      inst.on('message', () => msgs++);
+      inst.on('queueEmpty', () => {
+        msgs.should.equal(0);
+        inst.stop();
+        done();
+      });
+    });
     it('observes the maxInFlight cap', (done) => {
       let msgs = 0;
       inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 });

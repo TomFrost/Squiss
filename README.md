@@ -68,6 +68,9 @@ object handed to you in this event is the AWS failure object described in the [S
 ### error {Error}
 If any of the AWS API calls outrightly fail, `error` is emitted. If you don't have a listener on `error`, per Node.js's structure, the error will be treated as uncaught and will crash your app.
 
+### queueEmpty
+A `queueEmpty` is emitted when no messages are received from getBatch
+
 ### message {Message}
 Emitted every time Squiss pulls a new message from the queue. The Squiss Message object handed back has the following methods and properties:
 
