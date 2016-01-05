@@ -24,7 +24,9 @@ class Message {
     this.raw = opts.msg;
     this.body = opts.msg.Body;
     if (opts.unwrapSns) {
-      this.body = Message._snsUnwrap(this.body);
+      let unwrapped = Message._snsUnwrap(this.body);
+      this.body = unwrapped.Message;
+      this.subject = unwrapped.Subject;
     }
     this.body = Message._formatMessage(this.body, opts.bodyFormat);
     this._squiss = opts.squiss;
@@ -73,7 +75,7 @@ Message._formatMessage = (msg, format) => {
  * @private
  */
 Message._snsUnwrap = (msg) => {
-  return JSON.parse(msg).Message;
+  return JSON.parse(msg);
 };
 
 export default Message;

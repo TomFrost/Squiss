@@ -16,11 +16,12 @@ function getSQSMsg(body) {
 describe('Message', () => {
   it('unwraps an SNS message', () => {
     const msg = new Message({
-      msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
+      msg: getSQSMsg('{"Message":"foo","bar":"baz", "Subject": "new subject"}'),
       unwrapSns: true,
       bodyFormat: 'plain'
     });
     msg.should.have.property('body').equal('foo');
+    msg.should.have.property('subject').equal('new subject');
   });
   it('parses JSON', () => {
     const msg = new Message({

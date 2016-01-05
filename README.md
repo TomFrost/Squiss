@@ -17,7 +17,7 @@ poller.on('message', (msg) => {
 ```
 
 ## How it works
-Squiss aims to process as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will attempt to keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time. 
+Squiss aims to process as many messages simultaneously as possible. Set the `maxInFlight` option to the number of messages your app can handle at one time without choking, and Squiss will attempt to keep that many messages flowing through your app, grabbing more as you mark each message as handled or ready for deletion. If the queue is empty, Squiss will maintain an open connection to SQS, waiting for any messages that appear in real time.
 
 ## Functions
 
@@ -43,7 +43,7 @@ Don't be scared of `new` -- you need to create a new Squiss instance for every q
 Deletes a message. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
 ### squiss.handledMessage()
-Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this. 
+Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this.
 
 ### squiss.start()
 Starts polling SQS for new messages. Each new message is handed off in the `message` event.
@@ -73,6 +73,9 @@ Emitted every time Squiss pulls a new message from the queue. The Squiss Message
 
 #### {Object|string} message.body
 The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `bodyFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
+
+#### {string} message.subject
+The subject of the SNS message. This only exists if unwrapSns was specified.
 
 #### message.del()
 Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.
