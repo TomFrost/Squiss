@@ -76,7 +76,6 @@ export default class Squiss extends EventEmitter {
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight, 10);
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
     this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
-    this._emptyEvent = opts.emptyEvent || optDefaults.emptyEvent;
     this._requesting = false;
     this._running = false;
     this._inFlight = 0;
