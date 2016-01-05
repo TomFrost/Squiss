@@ -20,8 +20,7 @@ const optDefaults = {
   maxInFlight: 100,
   unwrapSns: false,
   bodyFormat: 'plain',
-  correctQueueUrl: false,
-  emptyEvent: false
+  correctQueueUrl: false
 };
 
 /**
@@ -221,7 +220,7 @@ export default class Squiss extends EventEmitter {
           this._inFlight++;
           this.emit('message', message);
         });
-      } else if (this._emptyEvent) {
+      } else {
         this.emit('queueEmpty');
       }
       if (this._running && this._slotsAvailable()) {

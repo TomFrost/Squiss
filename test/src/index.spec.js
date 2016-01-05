@@ -125,23 +125,22 @@ describe('index', () => {
         });
       });
     });
-    it('receives no messages (no empty event)', (done) => {
+    it('receives no messages', (done) => {
       let msgs = 0;
       let emptyEvt = 0;
       inst = new Squiss({ queueUrl: 'foo' });
       inst.sqs = new SQSStub(0, 0);
       inst.start();
       inst.on('message', () => msgs++);
-      inst.on('queueEmpty', () => emptyEvt++);
       setTimeout(() => {
         msgs.should.equal(0);
         emptyEvt.should.equal(0);
         done();
       }, 5);
     });
-    it('emits queueEmpty event with no messages when option is set', (done) => {
+    it('emits queueEmpty event with no messages', (done) => {
       let msgs = 0;
-      inst = new Squiss({ queueUrl: 'foo', emptyEvent: true });
+      inst = new Squiss({ queueUrl: 'foo' });
       inst.sqs = new SQSStub(0, 0);
       inst.start();
       inst.on('message', () => msgs++);
