@@ -2,6 +2,10 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
+Nothing yet!
+
+## [v0.5.0]
+### Added
 - Specifying unwrapSns now provides message.topicArn and message.topicName.
 
 ## [v0.4.0]
@@ -25,7 +29,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/0.4.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.0...HEAD
+[v0.4.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.4.0...0.5.0
 [v0.4.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.3.1...0.4.0
 [v0.3.1]: https://github.com/TechnologyAdvice/Squiss/compare/0.3.0...0.3.1
 [v0.3.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.2.0...0.3.0
