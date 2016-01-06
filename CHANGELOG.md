@@ -2,7 +2,7 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+- Specifying unwrapSns now provides message.topicArn and message.topicName.
 
 ## [v0.4.0]
 ### Added

@@ -13,15 +13,30 @@ function getSQSMsg(body) {
   };
 }
 
+const snsMsg = {
+  Type: 'Notification',
+  MessageId: 'some-id',
+  TopicArn: 'arn:aws:sns:us-east-1:1234567890:sns-topic-name',
+  Subject: 'some-subject',
+  Message: 'foo',
+  Timestamp: '2015-11-25T04:17:37.741Z',
+  SignatureVersion: '1',
+  Signature: 'dGVzdAo=',
+  SigningCertURL: 'https://sns.us-east-1.amazonaws.com/SimpleNotificationService-bb750dd426d95ee9390147a5624348ee.pem',
+  UnsubscribeURL: 'https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:1234567890:sns-topic-name:12345678-1234-4321-1234-123456789012'
+};
+
 describe('Message', () => {
   it('unwraps an SNS message', () => {
     const msg = new Message({
-      msg: getSQSMsg('{"Message":"foo","bar":"baz", "Subject": "new subject"}'),
+      msg: getSQSMsg(JSON.stringify(snsMsg)),
       unwrapSns: true,
       bodyFormat: 'plain'
     });
     msg.should.have.property('body').equal('foo');
-    msg.should.have.property('subject').equal('new subject');
+    msg.should.have.property('subject').equal('some-subject');
+    msg.should.have.property('topicArn').equal(snsMsg.TopicArn);
+    msg.should.have.property('topicName').equal('sns-topic-name');
   });
   it('parses JSON', () => {
     const msg = new Message({

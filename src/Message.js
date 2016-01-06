@@ -24,9 +24,11 @@ class Message {
     this.raw = opts.msg;
     this.body = opts.msg.Body;
     if (opts.unwrapSns) {
-      let unwrapped = Message._snsUnwrap(this.body);
+      let unwrapped = JSON.parse(this.body);
       this.body = unwrapped.Message;
       this.subject = unwrapped.Subject;
+      this.topicArn = unwrapped.TopicArn;
+      this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1);
     }
     this.body = Message._formatMessage(this.body, opts.bodyFormat);
     this._squiss = opts.squiss;
@@ -66,16 +68,6 @@ Message._formatMessage = (msg, format) => {
   case 'json': return JSON.parse(msg);
   default: return msg;
   }
-};
-
-/**
- * Unwraps an SNS message by parsing it as JSON and returning the Message property.
- * @param {string} msg The message to be unwrapped
- * @returns {string} The unwrapped message.
- * @private
- */
-Message._snsUnwrap = (msg) => {
-  return JSON.parse(msg);
 };
 
 export default Message;

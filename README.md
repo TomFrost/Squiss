@@ -78,7 +78,13 @@ Emitted every time Squiss pulls a new message from the queue. The Squiss Message
 The body of the SQS message, unwrapped from the SNS metadata wrapper (if `unwrapSns` was specified in the constructor), and JSON-parsed (if `bodyFormat: 'json'` was specified in the constructor). Otherwise the body will just be a string.
 
 #### {string} message.subject
-The subject of the SNS message. This only exists if unwrapSns was specified.
+The subject of the SNS message, if set. Exists only if unwrapSns was specified.
+
+#### {string} message.topicArn
+The full SNS topic ARN to which this message was posted. Exists only if unwrapSns was specified.
+
+#### {string} message.topicName
+The name of the SNS topic to which this message was posted. Included for convenience only: this is the last segment of the topicArn. Exists only if unwrapSns was specified.
 
 #### message.del()
 Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.
