@@ -269,6 +269,6 @@ export default class Squiss extends EventEmitter {
    * @private
    */
   _slotsAvailable() {
-    return this._inFlight === 0 || this._inFlight < this._maxInFlight - this._receiveBatchSize;
+    return this._inFlight <= this._maxInFlight - this._receiveBatchSize;
   }
 }
