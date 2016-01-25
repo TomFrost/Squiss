@@ -127,7 +127,7 @@ describe('index', () => {
     });
     it('receives batches of messages when maxInflight = receiveBatchSize', (done) => {
       let msgs = 0;
-      inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 });
+      inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10 });
       inst.sqs = new SQSStub(15);
       inst.start();
       inst.on('message', (m) => {
