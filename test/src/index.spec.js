@@ -179,6 +179,26 @@ describe('index', () => {
         });
       });
     });
+    it('respects maxInFlight as false (no cap)', (done) => {
+      let msgs = 0;
+      inst = new Squiss({ queueUrl: 'foo', maxInFlight: false });
+      inst.sqs = new SQSStub(35);
+      inst.start();
+      inst.on('message', () => msgs++);
+      setImmediate(() => {
+        msgs.should.equal(10);
+        setImmediate(() => {
+          msgs.should.equal(20);
+          setImmediate(() => {
+            msgs.should.equal(30);
+            setImmediate(() => {
+              msgs.should.equal(35);
+              done();
+            });
+          });
+        });
+      });
+    });
     it('reports the correct number of inFlight messages', (done) => {
       let msgs = [];
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
