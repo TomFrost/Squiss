@@ -1,6 +1,6 @@
 {
   "name": "squiss",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "High-volume SQS poller",
   "main": "build/index.js",
   "scripts": {
