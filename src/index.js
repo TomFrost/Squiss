@@ -50,7 +50,7 @@ export default class Squiss extends EventEmitter {
    *    deletion before deleting the message(s) from SQS
    * @param {number} [opts.maxInFlight=100] The number of messages to keep "in-flight", or processing simultaneously.
    *    When this cap is reached, no more messages will be polled until currently in-flight messages are marked as
-   *    deleted or handled. Setting this to false will uncap your inFlight messages, pulling and delivering messages
+   *    deleted or handled. Setting this to 0 will uncap your inFlight messages, pulling and delivering messages
    *    as long as there are messages to pull.
    * @param {number} [opts.receiveBatchSize=10] The number of messages to receive at one time. Maximum 10 or
    *    maxInFlight, whichever is lower.
@@ -76,7 +76,7 @@ export default class Squiss extends EventEmitter {
     if (opts.maxInFlight === false) {
       this._unlimitedFlight = true;
     }
-    this._maxInFlight = opts.maxInFlight || optDefaults.maxInFlight;
+    this._maxInFlight = opts.maxInFlight || opts.maxInFlight === 0 ?  opts.maxInFlight : optDefaults.maxInFlight;
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight, 10);
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
     this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
@@ -273,6 +273,6 @@ export default class Squiss extends EventEmitter {
    * @private
    */
   _slotsAvailable() {
-    return this._unlimitedFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize;
+    return !this._maxInFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize;
   }
 }
