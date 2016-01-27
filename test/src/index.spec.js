@@ -179,9 +179,9 @@ describe('index', () => {
         });
       });
     });
-    it('respects maxInFlight as false (no cap)', (done) => {
+    it('respects maxInFlight as 0 (no cap)', (done) => {
       let msgs = 0;
-      inst = new Squiss({ queueUrl: 'foo', maxInFlight: false });
+      inst = new Squiss({ queueUrl: 'foo', maxInFlight: 0 });
       inst.sqs = new SQSStub(35);
       inst.start();
       inst.on('message', () => msgs++);
