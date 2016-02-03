@@ -181,7 +181,7 @@ describe('index', () => {
     });
     it('reports the correct number of inFlight messages', (done) => {
       let msgs = [];
-      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 });
       inst.sqs = new SQSStub(5);
       inst.start();
       inst.on('message', (msg) => msgs.push(msg));
@@ -199,7 +199,7 @@ describe('index', () => {
   describe('Deleting', () => {
     it('deletes messages using internal API', (done) => {
       let msgs = [];
-      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 });
       inst.sqs = new SQSStub(5);
       sinon.spy(inst.sqs, 'deleteMessageBatch');
       inst.start();
@@ -208,14 +208,14 @@ describe('index', () => {
         msgs.should.have.length(5);
         inst.deleteMessage(msgs.pop());
         setTimeout(() => {
-          inst.sqs.deleteMessageBatch.should.be.calledOnce;
+          inst.sqs.deleteMessageBatch.calledOnce.should.be.true;
           done();
         }, 10);
       });
     });
     it('deletes messages using Message API', (done) => {
       let msgs = [];
-      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 0 });
+      inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 });
       inst.sqs = new SQSStub(5);
       sinon.spy(inst.sqs, 'deleteMessageBatch');
       inst.start();
@@ -224,7 +224,7 @@ describe('index', () => {
         msgs.should.have.length(5);
         msgs.pop().del();
         setTimeout(() => {
-          inst.sqs.deleteMessageBatch.should.be.calledOnce;
+          inst.sqs.deleteMessageBatch.calledOnce.should.be.true;
           done();
         }, 10);
       });
@@ -239,9 +239,9 @@ describe('index', () => {
       setTimeout(() => {
         inst.stop();
         msgs.forEach((msg) => msg.del());
-        inst.sqs.deleteMessageBatch.should.be.calledOnce;
+        inst.sqs.deleteMessageBatch.calledOnce.should.be.true;
         setTimeout(() => {
-          inst.sqs.deleteMessageBatch.should.be.calledTwice;
+          inst.sqs.deleteMessageBatch.calledTwice.should.be.true;
           done();
         }, 20);
       }, 5);
@@ -256,7 +256,7 @@ describe('index', () => {
       setImmediate(() => {
         inst.stop();
         msgs[0].del();
-        inst.sqs.deleteMessageBatch.should.be.calledOnce;
+        inst.sqs.deleteMessageBatch.calledOnce.should.be.true;
         done();
       });
     });
