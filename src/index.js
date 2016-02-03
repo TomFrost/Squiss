@@ -131,6 +131,7 @@ export default class Squiss extends EventEmitter {
       this._deleteMessages(delBatch);
     } else if (!this._delTimer) {
       this._delTimer = setTimeout(() => {
+        this._delTimer = null;
         const delBatch = this._delQueue.splice(0, this._delQueue.length);
         this._deleteMessages(delBatch);
       }, this._deleteWaitMs);
