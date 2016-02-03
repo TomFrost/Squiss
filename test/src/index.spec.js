@@ -260,6 +260,26 @@ describe('index', () => {
         done();
       });
     });
+    it('delWaitTime Timeout should be cleared after timeout runs', (done) => {
+      let msgs = [];
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10});
+      inst.sqs = new SQSStub(2);
+      sinon.spy(inst, '_deleteMessages');
+      inst.start();
+      inst.on('message', (msg) => msgs.push(msg));
+      setTimeout(() => {
+        inst.stop();
+        msgs[0].del();
+        setTimeout(() => {
+          inst._deleteMessages.calledOnce.should.be.true;
+          msgs[1].del();
+          setTimeout(() => {
+            inst._deleteMessages.calledTwice.should.be.true;
+            done();
+          }, 20);
+        }, 20);
+      }, 5);
+    });
   });
   describe('Failures', () => {
     it('emits delError when a message fails to delete', (done) => {
