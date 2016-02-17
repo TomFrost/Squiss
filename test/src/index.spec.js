@@ -5,6 +5,7 @@
 import AWS from 'aws-sdk';
 import Squiss from 'src/index';
 import SQSStub from 'test/stubs/SQSStub';
+import sinon from 'sinon';
 
 let inst = null;
 const origSQS = AWS.SQS;
@@ -347,6 +348,25 @@ describe('index', () => {
         done();
       });
       inst.start();
+    });
+
+    it('attempts to repoll after a receive call fails', (done) => {
+      inst = new Squiss({ queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 30});
+      inst.sqs = new SQSStub(2);
+      sinon.stub(inst.sqs, 'receiveMessage', (params, cb) => {
+        cb(new Error('test'));
+        inst.sqs.receiveMessage.restore();
+      });
+      let msgs = 0;
+      let errs = 0;
+      inst.on('message', () => msgs++);
+      inst.on('error', () => errs++);
+      inst.start();
+      setTimeout(() => {
+        errs.should.eql(1);
+        msgs.should.eql(2);
+        done();
+      }, 50);
     });
     it('emits error when GetQueueURL call fails', (done) => {
       AWS.SQS = class SQS {

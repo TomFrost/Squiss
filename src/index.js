@@ -20,7 +20,8 @@ const optDefaults = {
   maxInFlight: 100,
   unwrapSns: false,
   bodyFormat: 'plain',
-  correctQueueUrl: false
+  correctQueueUrl: false,
+  pollRetryMs: 2000
 };
 
 /**
@@ -77,6 +78,7 @@ export default class Squiss extends EventEmitter {
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight !== 0 ? this._maxInFlight : 10, 10);
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
     this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
+    this._pollRetryMs = opts.pollRetryMs || optDefaults.pollRetryMs;
     this._requesting = false;
     this._running = false;
     this._inFlight = 0;
@@ -208,6 +210,9 @@ export default class Squiss extends EventEmitter {
       this._requesting = false;
       if (err) {
         this.emit('error', err);
+        setTimeout(() => {
+          this._getBatch();
+        }, this._pollRetryMs);
         return;
       }
       if (data && data.Messages) {
