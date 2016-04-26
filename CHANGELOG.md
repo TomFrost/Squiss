@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Added
+- pollRetryMs has been added to automatically restart the poller after a failed call to get new messages (dannyrscott)
 
 ## [v0.6.0]
 ### Added
