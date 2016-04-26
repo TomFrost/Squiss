@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2015 TechnologyAdvice
+ * Copyright (c) 2015-2016 TechnologyAdvice
  */
 
-import AWS from 'aws-sdk';
-import { EventEmitter } from 'events';
-import Message from './Message';
-import url from 'url';
+'use strict'
+
+const AWS = require('aws-sdk')
+const EventEmitter = require('events').EventEmitter
+const Message = require('./Message')
+const url = require('url')
 
 /**
  * Option defaults.
@@ -22,12 +24,12 @@ const optDefaults = {
   bodyFormat: 'plain',
   correctQueueUrl: false,
   pollRetryMs: 2000
-};
+}
 
 /**
  * Squiss is a high-volume-capable Amazon SQS polling class. See README for usage details.
  */
-export default class Squiss extends EventEmitter {
+class Squiss extends EventEmitter {
 
   /**
    * Creates a new Squiss object.
@@ -68,36 +70,37 @@ export default class Squiss extends EventEmitter {
    *    not be received more than once before it is processed and deleted. If not specified, the default for the SQS
    *    queue will be used.
    */
-  constructor(opts = {}) {
-    super();
-    this.sqs = new AWS.SQS(opts.awsConfig);
-    this._queueUrl = opts.queueUrl;
-    this._deleteBatchSize = Math.min(opts.deleteBatchSize || optDefaults.deleteBatchSize, 10);
-    this._deleteWaitMs = opts.deleteWaitMs || optDefaults.deleteWaitMs;
-    this._maxInFlight = opts.maxInFlight || opts.maxInFlight === 0 ?  opts.maxInFlight : optDefaults.maxInFlight;
-    this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight !== 0 ? this._maxInFlight : 10, 10);
-    this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns;
-    this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat;
-    this._pollRetryMs = opts.pollRetryMs || optDefaults.pollRetryMs;
-    this._requesting = false;
-    this._running = false;
-    this._inFlight = 0;
-    this._delQueue = [];
-    this._delTimer = null;
+  constructor(opts) {
+    super()
+    if (!opts) opts = {}
+    this.sqs = new AWS.SQS(opts.awsConfig)
+    this._queueUrl = opts.queueUrl
+    this._deleteBatchSize = Math.min(opts.deleteBatchSize || optDefaults.deleteBatchSize, 10)
+    this._deleteWaitMs = opts.deleteWaitMs || optDefaults.deleteWaitMs
+    this._maxInFlight = opts.maxInFlight || opts.maxInFlight === 0 ?  opts.maxInFlight : optDefaults.maxInFlight
+    this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight !== 0 ? this._maxInFlight : 10, 10)
+    this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns
+    this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat
+    this._pollRetryMs = opts.pollRetryMs || optDefaults.pollRetryMs
+    this._requesting = false
+    this._running = false
+    this._inFlight = 0
+    this._delQueue = []
+    this._delTimer = null
     this._sqsParams = {
       QueueUrl: opts.queueUrl,
       MaxNumberOfMessages: this._receiveBatchSize,
       WaitTimeSeconds: opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
-    };
-    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl;
+    }
+    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl
     if (opts.visibilityTimeout) {
-      this._sqsParams.VisibilityTimeout = opts.visibilityTimeout;
+      this._sqsParams.VisibilityTimeout = opts.visibilityTimeout
     }
     if (!opts.queueUrl && !opts.queueName) {
-      throw new Error('Squiss requires either the "queueUrl", or the "queueName".');
+      throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
     }
     if (!opts.queueUrl) {
-      this._getQueueUrl(opts.queueName, opts.accountNumber);
+      this._getQueueUrl(opts.queueName, opts.accountNumber)
     }
   }
 
@@ -106,7 +109,7 @@ export default class Squiss extends EventEmitter {
    * @returns {number}
    */
   get inFlight() {
-    return this._inFlight;
+    return this._inFlight
   }
 
   /**
@@ -114,7 +117,7 @@ export default class Squiss extends EventEmitter {
    * @returns {boolean}
    */
   get running() {
-    return this._running;
+    return this._running
   }
 
   /**
@@ -123,21 +126,21 @@ export default class Squiss extends EventEmitter {
    * @param {Message} msg The message to be deleted.
    */
   deleteMessage(msg) {
-    this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle });
-    this.handledMessage();
+    this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
+    this.handledMessage()
     if (this._delQueue.length >= this._deleteBatchSize) {
       if (this._delTimer) {
-        clearTimeout(this._delTimer);
-        this._delTimer = null;
+        clearTimeout(this._delTimer)
+        this._delTimer = null
       }
-      const delBatch = this._delQueue.splice(0, this._deleteBatchSize);
-      this._deleteMessages(delBatch);
+      const delBatch = this._delQueue.splice(0, this._deleteBatchSize)
+      this._deleteMessages(delBatch)
     } else if (!this._delTimer) {
       this._delTimer = setTimeout(() => {
-        this._delTimer = null;
-        const delBatch = this._delQueue.splice(0, this._delQueue.length);
-        this._deleteMessages(delBatch);
-      }, this._deleteWaitMs);
+        this._delTimer = null
+        const delBatch = this._delQueue.splice(0, this._delQueue.length)
+        this._deleteMessages(delBatch)
+      }, this._deleteWaitMs)
     }
   }
 
@@ -146,12 +149,12 @@ export default class Squiss extends EventEmitter {
    * messages without deleting one, which may be necessary in the event of an error.
    */
   handledMessage() {
-    this._inFlight--;
+    this._inFlight--
     if (this._running && this._slotsAvailable()) {
-      this._getBatch();
+      this._getBatch()
     }
     if (!this._inFlight) {
-      this.emit('drained');
+      this.emit('drained')
     }
   }
 
@@ -161,10 +164,10 @@ export default class Squiss extends EventEmitter {
    */
   start() {
     if (this._urlWaiting) {
-      this.on('ready', () => this.start());
+      this.on('ready', () => this.start())
     } else if (!this._running) {
-      this._running = true;
-      this._getBatch();
+      this._running = true
+      this._getBatch()
     }
   }
 
@@ -172,7 +175,7 @@ export default class Squiss extends EventEmitter {
    * Stops the poller.
    */
   stop() {
-    this._running = false;
+    this._running = false
   }
 
   /**
@@ -187,14 +190,14 @@ export default class Squiss extends EventEmitter {
     const delParams = {
       QueueUrl: this._queueUrl,
       Entries: batch
-    };
+    }
     this.sqs.deleteMessageBatch(delParams, (err, data) => {
       if (err) {
-        this.emit('error', err);
+        this.emit('error', err)
       } else if (data.Failed && data.Failed.length) {
-        data.Failed.forEach((fail) => this.emit('delError', fail));
+        data.Failed.forEach((fail) => this.emit('delError', fail))
       }
-    });
+    })
   }
 
   /**
@@ -204,16 +207,16 @@ export default class Squiss extends EventEmitter {
    * @private
    */
   _getBatch() {
-    if (this._requesting) return;
-    this._requesting = true;
+    if (this._requesting) return
+    this._requesting = true
     this.sqs.receiveMessage(this._sqsParams, (err, data) => {
-      this._requesting = false;
+      this._requesting = false
       if (err) {
-        this.emit('error', err);
+        this.emit('error', err)
         setTimeout(() => {
-          this._getBatch();
-        }, this._pollRetryMs);
-        return;
+          this._getBatch()
+        }, this._pollRetryMs)
+        return
       }
       if (data && data.Messages) {
         data.Messages.forEach((msg) => {
@@ -222,17 +225,17 @@ export default class Squiss extends EventEmitter {
             unwrapSns: this._unwrapSns,
             bodyFormat: this._bodyFormat,
             msg
-          });
-          this._inFlight++;
-          this.emit('message', message);
-        });
+          })
+          this._inFlight++
+          this.emit('message', message)
+        })
       } else {
-        this.emit('queueEmpty');
+        this.emit('queueEmpty')
       }
       if (this._running && this._slotsAvailable()) {
-        this._getBatch();
+        this._getBatch()
       }
-    });
+    })
   }
 
   /**
@@ -246,27 +249,27 @@ export default class Squiss extends EventEmitter {
    * @private
    */
   _getQueueUrl(queueName, accountNumber) {
-    this._urlWaiting = true;
-    const params = { QueueName: queueName };
+    this._urlWaiting = true
+    const params = { QueueName: queueName }
     if (accountNumber) {
-      params.QueueOwnerAWSAccountId = accountNumber;
+      params.QueueOwnerAWSAccountId = accountNumber
     }
     this.sqs.getQueueUrl(params, (err, data) => {
-      if (err) this.emit('error', err);
+      if (err) this.emit('error', err)
       else {
-        this._urlWaiting = false;
-        let queueUrl = data.QueueUrl;
+        this._urlWaiting = false
+        let queueUrl = data.QueueUrl
         if (this._correctQueueUrl) {
-          let newUrl = url.parse(this.sqs.config.endpoint);
-          const parsedQueueUrl = url.parse(queueUrl);
-          newUrl.pathname = parsedQueueUrl.pathname;
-          queueUrl = url.format(newUrl);
+          let newUrl = url.parse(this.sqs.config.endpoint)
+          const parsedQueueUrl = url.parse(queueUrl)
+          newUrl.pathname = parsedQueueUrl.pathname
+          queueUrl = url.format(newUrl)
         }
-        this._queueUrl = queueUrl;
-        this._sqsParams.QueueUrl = queueUrl;
-        this.emit('ready');
+        this._queueUrl = queueUrl
+        this._sqsParams.QueueUrl = queueUrl
+        this.emit('ready')
       }
-    });
+    })
   }
 
   /**
@@ -276,6 +279,8 @@ export default class Squiss extends EventEmitter {
    * @private
    */
   _slotsAvailable() {
-    return !this._maxInFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize;
+    return !this._maxInFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize
   }
 }
+
+module.exports = Squiss

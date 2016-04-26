@@ -1,0 +1,12 @@
+{
+  "env": {
+    "mocha": true
+  },
+  "globals": {
+    "sinon": false,
+    "should": false
+  },
+  "rules": {
+    "no-new": 0
+  }
+}

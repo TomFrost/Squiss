@@ -2,14 +2,13 @@
   "name": "squiss",
   "version": "0.7.0",
   "description": "High-volume SQS poller",
-  "main": "build/index.js",
+  "main": "src/index.js",
   "scripts": {
     "clean": "rm -rf node_modules build coverage",
-    "build": "babel ./src --out-dir ./build",
     "test": "npm run lint && npm run test-cov && npm run check-cov",
-    "mocha": "babel-node node_modules/.bin/_mocha",
-    "test-cov": "babel-node node_modules/.bin/babel-istanbul cover node_modules/.bin/_mocha",
-    "check-cov": "babel-istanbul check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
+    "mocha": "mocha",
+    "test-cov": "istanbul cover _mocha",
+    "check-cov": "istanbul check-coverage --statements 100 --branches 100 --functions 100 --lines 100",
     "lint": "eslint ./src ./test",
     "prepublish": "npm test && npm run build"
   },
@@ -18,7 +17,7 @@
     "url": "git+https://github.com/TechnologyAdvice/Squiss.git"
   },
   "files": [
-    "build"
+    "src"
   ],
   "keywords": [
     "aws",
@@ -36,15 +35,13 @@
   },
   "homepage": "https://github.com/TechnologyAdvice/Squiss#readme",
   "dependencies": {
-    "aws-sdk": "^2.2.15"
+    "aws-sdk": "^2.3.5"
   },
   "devDependencies": {
-    "babel": "^5.8.29",
-    "babel-eslint": "^4.1.5",
-    "babel-istanbul": "^0.4.1",
-    "chai": "^3.4.1",
-    "eslint": "^1.9.0",
-    "mocha": "^2.3.3",
-    "sinon": "^1.17.2"
+    "chai": "^3.5.0",
+    "eslint": "^2.8.0",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.4.5",
+    "sinon": "^1.17.3"
   }
 }
