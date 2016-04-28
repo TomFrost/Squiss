@@ -5,6 +5,7 @@
 'use strict'
 
 const AWS = require('aws-sdk')
+const Bluebird = require('bluebird')
 const EventEmitter = require('events').EventEmitter
 const Message = require('./Message')
 const url = require('url')
@@ -23,7 +24,9 @@ const optDefaults = {
   unwrapSns: false,
   bodyFormat: 'plain',
   correctQueueUrl: false,
-  pollRetryMs: 2000
+  pollRetryMs: 2000,
+  activePollIntervalMs: 0,
+  idlePollIntervalMs: 0
 }
 
 /**
@@ -69,38 +72,39 @@ class Squiss extends EventEmitter {
    *    seconds that each received message should be made inaccessible to other receive calls, so that a message will
    *    not be received more than once before it is processed and deleted. If not specified, the default for the SQS
    *    queue will be used.
+   * @param {number} [opts.pollRetryMs=2000] The number of milliseconds to wait before retrying when Squiss's call to
+   *    retrieve messages from SQS fails.
+   * @param {number} [opts.activePollIntervalMs=0] The number of milliseconds to wait between requesting batches of
+   *    messages when the queue is not empty, and the maxInFlight cap has not been hit.
+   * @param {number} [opts.idlePollIntervalMs
    */
   constructor(opts) {
     super()
     if (!opts) opts = {}
     this.sqs = new AWS.SQS(opts.awsConfig)
+    Bluebird.promisifyAll(this.sqs)
     this._queueUrl = opts.queueUrl
+    this._queueName = opts.queueName
+    this._accountNumber = opts.accountNumber
+    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl
     this._deleteBatchSize = Math.min(opts.deleteBatchSize || optDefaults.deleteBatchSize, 10)
     this._deleteWaitMs = opts.deleteWaitMs || optDefaults.deleteWaitMs
     this._maxInFlight = opts.maxInFlight || opts.maxInFlight === 0 ?  opts.maxInFlight : optDefaults.maxInFlight
     this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight !== 0 ? this._maxInFlight : 10, 10)
     this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns
     this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat
+    this._receiveWaitTimeSecs = opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
     this._pollRetryMs = opts.pollRetryMs || optDefaults.pollRetryMs
+    this._activePollIntervalMs = opts.activePollIntervalMs || optDefaults.activePollIntervalMs
+    this._idlePollIntervalMs = opts.idlePollIntervalMs || optDefaults.idlePollIntervalMs
+    this._visibilityTimeout = opts.visibilityTimeout
     this._requesting = false
     this._running = false
     this._inFlight = 0
     this._delQueue = []
     this._delTimer = null
-    this._sqsParams = {
-      QueueUrl: opts.queueUrl,
-      MaxNumberOfMessages: this._receiveBatchSize,
-      WaitTimeSeconds: opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
-    }
-    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl
-    if (opts.visibilityTimeout) {
-      this._sqsParams.VisibilityTimeout = opts.visibilityTimeout
-    }
     if (!opts.queueUrl && !opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
-    }
-    if (!opts.queueUrl) {
-      this._getQueueUrl(opts.queueName, opts.accountNumber)
     }
   }
 
@@ -145,6 +149,30 @@ class Squiss extends EventEmitter {
   }
 
   /**
+   * Gets the queueUrl for the configured queue and sets this instance up to use it. Any calls to
+   * {@link #start} will wait until this function completes to begin polling.
+   * @returns {Promise.<string>} Resolves with the queue URL
+   * @private
+   */
+  getQueueUrl() {
+    if (this._queueUrl) return Promise.resolve(this._queueUrl)
+    const params = { QueueName: this._queueName }
+    if (this._accountNumber) {
+      params.QueueOwnerAWSAccountId = this._accountNumber
+    }
+    return this.sqs.getQueueUrlAsync(params).then(data => {
+      this._queueUrl = data.QueueUrl
+      if (this._correctQueueUrl) {
+        let newUrl = url.parse(this.sqs.config.endpoint)
+        const parsedQueueUrl = url.parse(this._queueUrl)
+        newUrl.pathname = parsedQueueUrl.pathname
+        this._queueUrl = url.format(newUrl)
+      }
+      return this._queueUrl
+    })
+  }
+
+  /**
    * Informs Squiss that a message has been handled. This allows Squiss to decrement the number of in-flight
    * messages without deleting one, which may be necessary in the event of an error.
    */
@@ -159,20 +187,18 @@ class Squiss extends EventEmitter {
   }
 
   /**
-   * Starts the poller. If this instance is still retrieving the queueUrl, Squiss will automatically
-   * re-call this function when the queueUrl has been set up.
+   * Starts the poller, if it's not already running.
    */
   start() {
-    if (this._urlWaiting) {
-      this.on('ready', () => this.start())
-    } else if (!this._running) {
+    if (!this._running) {
       this._running = true
       this._getBatch()
     }
   }
 
   /**
-   * Stops the poller.
+   * Stops the poller. Note that if this is called while there's an active request for new messages, the message
+   * event may still be fired afterward.
    */
   stop() {
     this._running = false
@@ -187,16 +213,36 @@ class Squiss extends EventEmitter {
    * @private
    */
   _deleteMessages(batch) {
-    const delParams = {
-      QueueUrl: this._queueUrl,
-      Entries: batch
-    }
-    this.sqs.deleteMessageBatch(delParams, (err, data) => {
-      if (err) {
-        this.emit('error', err)
-      } else if (data.Failed && data.Failed.length) {
+    this.getQueueUrl().then((queueUrl) => {
+      return this.sqs.deleteMessageBatchAsync({
+        QueueUrl: queueUrl,
+        Entries: batch
+      })
+    }).then((data) => {
+      if (data.Failed && data.Failed.length) {
         data.Failed.forEach((fail) => this.emit('delError', fail))
       }
+    }).catch((err) => {
+      this.emit('error', err)
+    })
+  }
+
+  /**
+   * Given an array of message bodies from SQS, this method will construct Message objects for each and emit them
+   * in separate `message` events.
+   * @param {Array<Object>} messages An array of SQS message objects, as returned from the aws sdk
+   * @private
+   */
+  _emitMessages(messages) {
+    messages.forEach((msg) => {
+      const message = new Message({
+        squiss: this,
+        unwrapSns: this._unwrapSns,
+        bodyFormat: this._bodyFormat,
+        msg
+      })
+      this._inFlight++
+      this.emit('message', message)
     })
   }
 
@@ -204,72 +250,50 @@ class Squiss extends EventEmitter {
    * Gets a new batch of messages from Amazon SQS. Note that this function does no checking of the current inFlight
    * count, or the current running status. A `message` event will be emitted for each new message, with the provided
    * object being an instance of Squiss' Message class.
+   * @returns {boolean} true if a request was triggered; false otherwise.
    * @private
    */
   _getBatch() {
-    if (this._requesting) return
+    if (this._requesting || !this._running) return false
+    const next = this._getBatch.bind(this)
     this._requesting = true
-    this.sqs.receiveMessage(this._sqsParams, (err, data) => {
-      this._requesting = false
-      if (err) {
-        this.emit('error', err)
-        setTimeout(() => {
-          this._getBatch()
-        }, this._pollRetryMs)
-        return
+    this.getQueueUrl().then((queueUrl) => {
+      const params = {
+        QueueUrl: queueUrl,
+        MaxNumberOfMessages: this._receiveBatchSize,
+        WaitTimeSeconds: this._receiveWaitTimeSecs
       }
+      if (this._visibilityTimeout !== undefined) {
+        params.VisibilityTimeout = this._visibilityTimeout
+      }
+      return this.sqs.receiveMessageAsync(params)
+    }).then((data) => {
+      let gotMessages = true
+      this._requesting = false
       if (data && data.Messages) {
-        data.Messages.forEach((msg) => {
-          const message = new Message({
-            squiss: this,
-            unwrapSns: this._unwrapSns,
-            bodyFormat: this._bodyFormat,
-            msg
-          })
-          this._inFlight++
-          this.emit('message', message)
-        })
+        this.emit('gotMessages', data.Messages.length)
+        this._emitMessages(data.Messages)
       } else {
         this.emit('queueEmpty')
+        gotMessages = false
       }
-      if (this._running && this._slotsAvailable()) {
-        this._getBatch()
-      }
-    })
-  }
-
-  /**
-   * Gets the queueUrl for a given queue and sets this instance up to use it. Any calls to
-   * {@link #start} will wait until this function completes to begin polling.
-   *
-   * Emits `ready` when the queueUrl is retrieved and set up; `error` if the AWS GetQueueURL
-   * call fails.
-   * @param {string} queueName The name of the queue for which to retrieve the URL
-   * @param {string} [accountNumber] Optionally, the AWS account number of the queue owner
-   * @private
-   */
-  _getQueueUrl(queueName, accountNumber) {
-    this._urlWaiting = true
-    const params = { QueueName: queueName }
-    if (accountNumber) {
-      params.QueueOwnerAWSAccountId = accountNumber
-    }
-    this.sqs.getQueueUrl(params, (err, data) => {
-      if (err) this.emit('error', err)
-      else {
-        this._urlWaiting = false
-        let queueUrl = data.QueueUrl
-        if (this._correctQueueUrl) {
-          let newUrl = url.parse(this.sqs.config.endpoint)
-          const parsedQueueUrl = url.parse(queueUrl)
-          newUrl.pathname = parsedQueueUrl.pathname
-          queueUrl = url.format(newUrl)
+      if (this._slotsAvailable()) {
+        if (gotMessages && this._activePollIntervalMs) {
+          setTimeout(next, this._activePollIntervalMs)
+        } else if (!gotMessages && this._idlePollIntervalMs) {
+          setTimeout(next, this._idlePollIntervalMs)
+        } else {
+          next()
         }
-        this._queueUrl = queueUrl
-        this._sqsParams.QueueUrl = queueUrl
-        this.emit('ready')
+      } else {
+        this.emit('maxInFlight')
       }
+    }).catch((err) => {
+      this._requesting = false
+      setTimeout(next, this._pollRetryMs)
+      this.emit('error', err)
     })
+    return true
   }
 
   /**

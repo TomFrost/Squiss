@@ -2,7 +2,17 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Added
+- The `gotMessages` event, which fires when Squiss retrieves a new batch of messages from SQS
+- The `maxInFlight` event, which fires when Squiss stops requesting new messages due to hitting the maxInFlight cap
+- Documentation for the already-existing `drained` event
+- New option: activePollIntervalMs, allowing SQS requests to be spaced out when the queue has messages
+- New option: idlePollIntervalMs, allowing SQS requests to be spaced out when the queue is empty
+- `getQueueUrl` method to retrieve the configured queue's URL, even if only the name was provided to the constructor
+
+### Changed
+- Dropped support for Node 0.12. For Node 0.12 support, consider compiling with an ES6 transpiler such as Babel, or using version 0.7.
+- Switched codebase to native ES6, updating to newest TechnologyAdvice style guide
 
 ## [v0.7.0]
 ### Added

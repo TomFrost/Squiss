@@ -4,6 +4,8 @@
 
 'use strict'
 
+const Bluebird = require('bluebird')
+
 class SQSStub {
   constructor(msgCount, timeout) {
     this.msgs = []
@@ -22,7 +24,7 @@ class SQSStub {
     }
   }
 
-  deleteMessageBatch(params, cb) {
+  deleteMessageBatchAsync(params) {
     const res = {
       Successful: [],
       Failed: []
@@ -39,22 +41,23 @@ class SQSStub {
         })
       }
     })
-    setImmediate(cb.bind(null, null, res))
+    return Bluebird.resolve(res)
   }
 
-  getQueueUrl(params, cb) {
-    setImmediate(() => {
-      cb(null, {
-        QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
-      })
+  getQueueUrlAsync(params) {
+    return Promise.resolve({
+      QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
     })
   }
 
-  receiveMessage(query, cb) {
+  receiveMessageAsync(query) {
     const msgs = this.msgs.splice(0, query.MaxNumberOfMessages)
-    const done = cb.bind(null, null, msgs.length ? {Messages: msgs} : {})
-    if (msgs.length) setImmediate(done)
-    else setTimeout(done, this.timeout * 1000)
+    return new Bluebird((resolve) => {
+      if (msgs.length) return resolve({Messages: msgs})
+      return setTimeout(() => {
+        resolve({})
+      }, this.timeout * 1000)
+    })
   }
 }
 

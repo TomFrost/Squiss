@@ -7,9 +7,11 @@
 const AWS = require('aws-sdk')
 const Squiss = require('src/index')
 const SQSStub = require('test/stubs/SQSStub')
+const delay = require('delay')
 
 let inst = null
 const origSQS = AWS.SQS
+const wait = (ms) => delay(ms === undefined ? 20 : ms)
 
 describe('index', () => {
   afterEach(() => {
@@ -48,45 +50,8 @@ describe('index', () => {
       inst.sqs.should.be.an.Object
       inst.sqs.config.region.should.equal('us-east-1')
     })
-    it('retrieves the queueUrl when a queueName is supplied', (done) => {
-      AWS.SQS = class SQS {
-        getQueueUrl(params, cb) {
-          params.QueueName.should.equal('foo')
-          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }))
-        }
-      }
-      inst = new Squiss({ queueName: 'foo' })
-      inst.on('ready', done)
-    })
-    it('retrieves the queueUrl from a different account', (done) => {
-      AWS.SQS = class SQS {
-        getQueueUrl(params, cb) {
-          params.QueueName.should.equal('foo')
-          params.QueueOwnerAWSAccountId.should.equal('bar')
-          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }))
-        }
-      }
-      inst = new Squiss({
-        queueName: 'foo',
-        accountNumber: 'bar'
-      })
-      inst.on('ready', done)
-    })
   })
   describe('Receiving', () => {
-    it('waits to run until a queueUrl is retrieved', (done) => {
-      AWS.SQS = class SQS {
-        getQueueUrl(params, cb) {
-          setImmediate(cb.bind(null, null, { QueueUrl: 'fooUrl' }))
-        }
-      }
-      inst = new Squiss({ queueName: 'foo' })
-      inst.sqs = new SQSStub(1)
-      inst.start()
-      inst.on('ready', () => {
-        inst.on('message', () => done())
-      })
-    })
     it('reports the appropriate "running" status', () => {
       inst = new Squiss({ queueUrl: 'foo' })
       inst._getBatch = () => {}
@@ -102,294 +67,269 @@ describe('index', () => {
       inst.start()
       inst.running.should.be.true
     })
-    it('receives a batch of messages under the max', (done) => {
-      let msgs = 0
+    it('receives a batch of messages under the max', () => {
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo' })
       inst.sqs = new SQSStub(5)
+      inst.on('gotMessages', spy)
       inst.start()
-      inst.on('message', () => msgs++)
-      setImmediate(() => {
-        msgs.should.equal(5)
-        done()
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith(5)
       })
     })
-    it('receives batches of messages', (done) => {
-      let msgs = 0
+    it('receives batches of messages', () => {
+      const batches = []
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo' })
-      inst.sqs = new SQSStub(15)
+      inst.sqs = new SQSStub(15, 0)
+      inst.on('gotMessages', (count) => batches.push({total: count, num: 0}))
+      inst.on('message', () => batches[batches.length - 1].num++)
+      inst.once('queueEmpty', spy)
       inst.start()
-      inst.on('message', () => msgs++)
-      setImmediate(() => {
-        msgs.should.equal(10)
-        setImmediate(() => {
-          msgs.should.equal(15)
-          done()
-        })
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        batches.should.deep.equal([
+          {total: 10, num: 10},
+          {total: 5, num: 5}
+        ])
       })
     })
-    it('receives batches of messages when maxInflight = receiveBatchSize', (done) => {
-      let msgs = 0
+    it('receives batches of messages when maxInflight = receiveBatchSize', () => {
+      const batches = []
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10, receiveBatchSize: 10 })
-      inst.sqs = new SQSStub(15)
-      inst.start()
+      inst.sqs = new SQSStub(15, 0)
+      inst.on('gotMessages', (count) => batches.push({total: count, num: 0}))
       inst.on('message', (m) => {
-        msgs++
+        batches[batches.length - 1].num++
         m.del()
       })
-      setImmediate(() => {
-        msgs.should.equal(10)
-        setImmediate(() => {
-          msgs.should.equal(15)
-          done()
-        })
+      inst.once('queueEmpty', spy)
+      inst.start()
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        batches.should.deep.equal([
+          {total: 10, num: 10},
+          {total: 5, num: 5}
+        ])
       })
     })
-    it('receives no messages', (done) => {
-      let msgs = 0
+    it('emits queueEmpty event with no messages', () => {
+      const msgSpy = sinon.spy()
+      const qeSpy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo' })
       inst.sqs = new SQSStub(0, 0)
+      inst.on('message', msgSpy)
+      inst.once('queueEmpty', qeSpy)
       inst.start()
-      inst.on('message', () => msgs++)
-      setTimeout(() => {
-        msgs.should.equal(0)
-        done()
-      }, 5)
-    })
-    it('emits queueEmpty event with no messages', (done) => {
-      let msgs = 0
-      inst = new Squiss({ queueUrl: 'foo' })
-      inst.sqs = new SQSStub(0, 0)
-      inst.start()
-      inst.on('message', () => msgs++)
-      inst.on('queueEmpty', () => {
-        msgs.should.equal(0)
-        inst.stop()
-        done()
+      return wait().then(() => {
+        msgSpy.should.not.be.called
+        qeSpy.should.be.calledOnce
       })
     })
-    it('observes the maxInFlight cap', (done) => {
-      let msgs = 0
+    it('observes the maxInFlight cap', () => {
+      const msgSpy = sinon.spy()
+      const maxSpy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 })
       inst.sqs = new SQSStub(15)
+      inst.on('message', msgSpy)
+      inst.on('maxInFlight', maxSpy)
       inst.start()
-      inst.on('message', () => msgs++)
-      setImmediate(() => {
-        msgs.should.equal(10)
-        setImmediate(() => {
-          msgs.should.equal(10)
-          done()
-        })
+      return wait().then(() => {
+        msgSpy.should.have.callCount(10)
+        maxSpy.should.have.callCount(1)
       })
     })
-    it('respects maxInFlight as 0 (no cap)', (done) => {
-      let msgs = 0
+    it('respects maxInFlight as 0 (no cap)', () => {
+      const msgSpy = sinon.spy()
+      const qeSpy = sinon.spy()
+      const gmSpy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', maxInFlight: 0 })
-      inst.sqs = new SQSStub(35)
+      inst.sqs = new SQSStub(35, 0)
+      inst.on('message', msgSpy)
+      inst.on('gotMessages', gmSpy)
+      inst.once('queueEmpty', qeSpy)
       inst.start()
-      inst.on('message', () => msgs++)
-      setImmediate(() => {
-        msgs.should.equal(10)
-        setImmediate(() => {
-          msgs.should.equal(20)
-          setImmediate(() => {
-            msgs.should.equal(30)
-            setImmediate(() => {
-              msgs.should.equal(35)
-              done()
-            })
-          })
-        })
+      return wait(50).then(() => {
+        msgSpy.should.have.callCount(35)
+        gmSpy.should.have.callCount(4)
+        qeSpy.should.have.callCount(1)
       })
     })
-    it('reports the correct number of inFlight messages', (done) => {
-      let msgs = []
+    it('reports the correct number of inFlight messages', () => {
+      const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 })
       inst.sqs = new SQSStub(5)
-      inst.start()
       inst.on('message', (msg) => msgs.push(msg))
-      setImmediate(() => {
+      inst.start()
+      return wait().then(() => {
         inst.inFlight.should.equal(5)
         inst.deleteMessage(msgs.pop())
         inst.handledMessage()
-        setImmediate(() => {
-          inst.inFlight.should.equal(3)
-          done()
-        })
+        return wait(1)
+      }).then(() => {
+        inst.inFlight.should.equal(3)
       })
     })
   })
   describe('Deleting', () => {
-    it('deletes messages using internal API', (done) => {
-      let msgs = []
+    it('deletes messages using internal API', () => {
+      const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 })
       inst.sqs = new SQSStub(5)
-      sinon.spy(inst.sqs, 'deleteMessageBatch')
-      inst.start()
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
       inst.on('message', (msg) => msgs.push(msg))
-      setImmediate(() => {
+      inst.start()
+      return wait().then(() => {
         msgs.should.have.length(5)
         inst.deleteMessage(msgs.pop())
-        setTimeout(() => {
-          inst.sqs.deleteMessageBatch.calledOnce.should.be.true
-          done()
-        }, 10)
+        return wait(10)
+      }).then(() => {
+        spy.should.be.calledOnce
       })
     })
-    it('deletes messages using Message API', (done) => {
-      let msgs = []
+    it('deletes messages using Message API', () => {
+      const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 })
       inst.sqs = new SQSStub(5)
-      sinon.spy(inst.sqs, 'deleteMessageBatch')
-      inst.start()
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
       inst.on('message', (msg) => msgs.push(msg))
-      setImmediate(() => {
+      inst.start()
+      return wait().then(() => {
         msgs.should.have.length(5)
         msgs.pop().del()
-        setTimeout(() => {
-          inst.sqs.deleteMessageBatch.calledOnce.should.be.true
-          done()
-        }, 10)
+        return wait(10)
+      }).then(() => {
+        spy.should.be.calledOnce
       })
     })
-    it('deletes messages in batches', (done) => {
-      let msgs = []
+    it('deletes messages in batches', () => {
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 10 })
       inst.sqs = new SQSStub(15)
-      sinon.spy(inst.sqs, 'deleteMessageBatch')
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      inst.on('message', (msg) => msg.del())
       inst.start()
-      inst.on('message', (msg) => msgs.push(msg))
-      setTimeout(() => {
-        inst.stop()
-        msgs.forEach((msg) => msg.del())
-        inst.sqs.deleteMessageBatch.calledOnce.should.be.true
-        setTimeout(() => {
-          inst.sqs.deleteMessageBatch.calledTwice.should.be.true
-          done()
-        }, 20)
-      }, 5)
-    })
-    it('deletes immediately with batch size=1', (done) => {
-      let msgs = []
-      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
-      inst.sqs = new SQSStub(1)
-      sinon.spy(inst.sqs, 'deleteMessageBatch')
-      inst.start()
-      inst.on('message', (msg) => msgs.push(msg))
-      setImmediate(() => {
-        inst.stop()
-        msgs[0].del()
-        inst.sqs.deleteMessageBatch.calledOnce.should.be.true
-        done()
+      return wait().then(() => {
+        spy.should.be.calledTwice
       })
     })
-    it('delWaitTime Timeout should be cleared after timeout runs', (done) => {
-      let msgs = []
+    it('deletes immediately with batch size=1', () => {
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
+      inst.sqs = new SQSStub(5)
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      inst.on('message', (msg) => msg.del())
+      inst.start()
+      return wait().then(() => {
+        spy.should.have.callCount(5)
+      })
+    })
+    it('delWaitTime timeout should be cleared after timeout runs', () => {
+      const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 10, deleteWaitMs: 10})
       inst.sqs = new SQSStub(2)
-      sinon.spy(inst, '_deleteMessages')
-      inst.start()
+      const spy = sinon.spy(inst, '_deleteMessages')
       inst.on('message', (msg) => msgs.push(msg))
-      setTimeout(() => {
+      inst.start()
+      return wait().then(() => {
         inst.stop()
         msgs[0].del()
-        setTimeout(() => {
-          inst._deleteMessages.calledOnce.should.be.true
-          msgs[1].del()
-          setTimeout(() => {
-            inst._deleteMessages.calledTwice.should.be.true
-            done()
-          }, 20)
-        }, 20)
-      }, 5)
+        return wait(15)
+      }).then(() => {
+        spy.should.be.calledOnce
+        msgs[1].del()
+        return wait(15)
+      }).then(() => {
+        spy.should.be.calledTwice
+      })
     })
   })
   describe('Failures', () => {
-    it('emits delError when a message fails to delete', (done) => {
+    it('emits delError when a message fails to delete', () => {
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
       inst.sqs = new SQSStub(1)
-      inst.on('delError', (fail) => {
-        should.exist(fail)
-        fail.should.be.an.Object
-        done()
-      })
+      inst.on('delError', spy)
       inst.deleteMessage({
         raw: {
           MessageId: 'foo',
           ReceiptHandle: 'bar'
         }
       })
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({ Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true })
+      })
     })
-    it('emits error when delete call fails', (done) => {
+    it('emits error when delete call fails', () => {
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
       inst.sqs = new SQSStub(1)
-      inst.sqs.deleteMessageBatch = (params, cb) => {
-        cb(new Error('test'))
-      }
-      inst.on('error', (err) => {
-        should.exist(err)
-        err.should.be.an.Error
-        done()
-      })
+      inst.sqs.deleteMessageBatchAsync = () => { throw new Error('test') }
+      inst.on('error', spy)
       inst.deleteMessage({
         raw: {
           MessageId: 'foo',
           ReceiptHandle: 'bar'
         }
       })
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith(sinon.match.instanceOf(Error))
+      })
     })
-    it('emits error when receive call fails', (done) => {
+    it('emits error when receive call fails', () => {
+      const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo' })
       inst.sqs = new SQSStub(1)
-      inst.sqs.receiveMessage = (params, cb) => {
-        cb(new Error('test'))
-      }
-      inst.on('error', (err) => {
-        should.exist(err)
-        err.should.be.an.Error
-        done()
-      })
+      inst.sqs.receiveMessageAsync = () => { throw new Error('test') }
+      inst.on('error', spy)
       inst.start()
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith(sinon.match.instanceOf(Error))
+      })
     })
-    it('attempts to repoll after a receive call fails', (done) => {
+    it('attempts to restart polling after a receive call fails', () => {
+      const msgSpy = sinon.spy()
+      const errSpy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5})
       inst.sqs = new SQSStub(2)
-      sinon.stub(inst.sqs, 'receiveMessage', (params, cb) => {
-        cb(new Error('test'))
-        inst.sqs.receiveMessage.restore()
+      sinon.stub(inst.sqs, 'receiveMessageAsync', () => {
+        inst.sqs.receiveMessageAsync.restore()
+        throw new Error('test')
       })
-      let msgs = 0
-      let errs = 0
-      inst.on('message', () => msgs++)
-      inst.on('error', () => errs++)
+      inst.on('message', msgSpy)
+      inst.on('error', errSpy)
       inst.start()
-      setTimeout(() => {
-        errs.should.eql(1)
-        msgs.should.eql(2)
-        done()
-      }, 10)
+      return wait().then(() => {
+        errSpy.should.be.calledOnce
+        msgSpy.should.be.calledTwice
+      })
     })
-    it('emits error when GetQueueURL call fails', (done) => {
+    it('emits error when GetQueueURL call fails', () => {
+      const spy = sinon.spy()
       AWS.SQS = class SQS {
         getQueueUrl(params, cb) {
           setImmediate(cb.bind(null, new Error('test')))
         }
       }
       inst = new Squiss({ queueName: 'foo' })
-      inst.on('error', (err) => {
-        should.exist(err)
-        err.should.be.an.Error
-        done()
+      inst.on('error', spy)
+      inst.start()
+      return wait().then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith(sinon.match.instanceOf(Error))
       })
     })
   })
   describe('Testing', () => {
-    it('allows queue URLs to be corrected to the endpoint hostname', (done) => {
+    it('allows queue URLs to be corrected to the endpoint hostname', () => {
       AWS.SQS = function() { return new SQSStub(1) }
       inst = new Squiss({ queueName: 'foo', correctQueueUrl: true })
       inst.sqs = new SQSStub(1)
-      inst.on('ready', () => {
-        inst._queueUrl.should.equal('http://foo.bar/queues/foo')
-        done()
+      return inst.getQueueUrl().then((url) => {
+        url.should.equal('http://foo.bar/queues/foo')
       })
     })
   })
