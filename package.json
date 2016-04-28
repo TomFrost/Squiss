@@ -9,8 +9,7 @@
     "mocha": "mocha",
     "test-cov": "istanbul cover _mocha",
     "check-cov": "istanbul check-coverage --statements 96 --branches 94 --functions 100 --lines 96",
-    "lint": "eslint ./src ./test",
-    "prepublish": "npm test && npm run build"
+    "lint": "eslint ./src ./test"
   },
   "repository": {
     "type": "git",
