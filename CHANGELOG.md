@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - The `gotMessages` event, which fires when Squiss retrieves a new batch of messages from SQS
 - The `maxInFlight` event, which fires when Squiss stops requesting new messages due to hitting the maxInFlight cap
 - Documentation for the already-existing `drained` event
+- Documentation for the already-existing `sqs` property
+- `sqs` property is imbued with the magic of Bluebird.promisifyAll()
 - New option: activePollIntervalMs, allowing SQS requests to be spaced out when the queue has messages
 - New option: idlePollIntervalMs, allowing SQS requests to be spaced out when the queue is empty
 - `getQueueUrl` method to retrieve the configured queue's URL, even if only the name was provided to the constructor
