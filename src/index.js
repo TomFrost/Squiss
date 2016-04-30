@@ -5,7 +5,6 @@
 'use strict'
 
 const AWS = require('aws-sdk')
-const Bluebird = require('bluebird')
 const EventEmitter = require('events').EventEmitter
 const Message = require('./Message')
 const url = require('url')
@@ -82,7 +81,6 @@ class Squiss extends EventEmitter {
     super()
     if (!opts) opts = {}
     this.sqs = new AWS.SQS(opts.awsConfig)
-    Bluebird.promisifyAll(this.sqs)
     this._queueUrl = opts.queueUrl
     this._queueName = opts.queueName
     this._accountNumber = opts.accountNumber
@@ -98,7 +96,6 @@ class Squiss extends EventEmitter {
     this._activePollIntervalMs = opts.activePollIntervalMs || optDefaults.activePollIntervalMs
     this._idlePollIntervalMs = opts.idlePollIntervalMs || optDefaults.idlePollIntervalMs
     this._visibilityTimeout = opts.visibilityTimeout
-    this._requesting = false
     this._running = false
     this._inFlight = 0
     this._delQueue = []
@@ -160,7 +157,7 @@ class Squiss extends EventEmitter {
     if (this._accountNumber) {
       params.QueueOwnerAWSAccountId = this._accountNumber
     }
-    return this.sqs.getQueueUrlAsync(params).then(data => {
+    return this.sqs.getQueueUrl(params).promise().then(data => {
       this._queueUrl = data.QueueUrl
       if (this._correctQueueUrl) {
         let newUrl = url.parse(this.sqs.config.endpoint)
@@ -178,8 +175,9 @@ class Squiss extends EventEmitter {
    */
   handledMessage() {
     this._inFlight--
-    if (this._running && this._slotsAvailable()) {
-      this._getBatch()
+    if (this._paused && this._slotsAvailable()) {
+      this._paused = false
+      this._startPoller()
     }
     if (!this._inFlight) {
       this.emit('drained')
@@ -192,16 +190,22 @@ class Squiss extends EventEmitter {
   start() {
     if (!this._running) {
       this._running = true
-      this._getBatch()
+      this._startPoller()
     }
   }
 
   /**
-   * Stops the poller. Note that if this is called while there's an active request for new messages, the message
-   * event may still be fired afterward.
+   * Stops the poller.
+   * @param {boolean} [soft=false] If a soft stop is performed, any active SQS request for new messages will be left
+   *    open until it terminates naturally. Note that if this is the case, the message event may still be fired after
+   *    this function has been called.
    */
-  stop() {
+  stop(soft) {
+    if (!soft && this._activeReq) {
+      this._activeReq.abort()
+    }
     this._running = false
+    this._paused = false
   }
 
   /**
@@ -214,10 +218,10 @@ class Squiss extends EventEmitter {
    */
   _deleteMessages(batch) {
     this.getQueueUrl().then((queueUrl) => {
-      return this.sqs.deleteMessageBatchAsync({
+      return this.sqs.deleteMessageBatch({
         QueueUrl: queueUrl,
         Entries: batch
-      })
+      }).promise()
     }).then((data) => {
       if (data.Failed && data.Failed.length) {
         data.Failed.forEach((fail) => this.emit('delError', fail))
@@ -253,23 +257,21 @@ class Squiss extends EventEmitter {
    * @returns {boolean} true if a request was triggered; false otherwise.
    * @private
    */
-  _getBatch() {
-    if (this._requesting || !this._running) return false
-    const next = this._getBatch.bind(this)
-    this._requesting = true
-    this.getQueueUrl().then((queueUrl) => {
-      const params = {
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: this._receiveBatchSize,
-        WaitTimeSeconds: this._receiveWaitTimeSecs
-      }
-      if (this._visibilityTimeout !== undefined) {
-        params.VisibilityTimeout = this._visibilityTimeout
-      }
-      return this.sqs.receiveMessageAsync(params)
-    }).then((data) => {
+  _getBatch(queueUrl) {
+    if (this._activeReq || !this._running) return false
+    const next = this._getBatch.bind(this, queueUrl)
+    const params = {
+      QueueUrl: queueUrl,
+      MaxNumberOfMessages: this._receiveBatchSize,
+      WaitTimeSeconds: this._receiveWaitTimeSecs
+    }
+    if (this._visibilityTimeout !== undefined) {
+      params.VisibilityTimeout = this._visibilityTimeout
+    }
+    this._activeReq = this.sqs.receiveMessage(params)
+    this._activeReq.promise().then((data) => {
       let gotMessages = true
-      this._requesting = false
+      this._activeReq = null
       if (data && data.Messages) {
         this.emit('gotMessages', data.Messages.length)
         this._emitMessages(data.Messages)
@@ -286,12 +288,17 @@ class Squiss extends EventEmitter {
           next()
         }
       } else {
+        this._paused = true
         this.emit('maxInFlight')
       }
     }).catch((err) => {
-      this._requesting = false
-      setTimeout(next, this._pollRetryMs)
-      this.emit('error', err)
+      this._activeReq = null
+      if (err.code && err.code === 'RequestAbortedError') {
+        this.emit('aborted')
+      } else {
+        setTimeout(next, this._pollRetryMs)
+        this.emit('error', err)
+      }
     })
     return true
   }
@@ -304,6 +311,12 @@ class Squiss extends EventEmitter {
    */
   _slotsAvailable() {
     return !this._maxInFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize
+  }
+
+  _startPoller() {
+    this.getQueueUrl()
+      .then(queueUrl => this._getBatch(queueUrl))
+      .catch(e => this.emit('error', e))
   }
 }
 

@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - The `gotMessages` event, which fires when Squiss retrieves a new batch of messages from SQS
 - The `maxInFlight` event, which fires when Squiss stops requesting new messages due to hitting the maxInFlight cap
+- The `aborted` event, which fires when stop() is called during an active SQS receive message request
 - Documentation for the already-existing `drained` event
 - Documentation for the already-existing `sqs` property
 - `sqs` property is imbued with the magic of Bluebird.promisifyAll()

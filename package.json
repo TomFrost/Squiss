@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "clean": "rm -rf node_modules build coverage",
-    "test": "npm run lint && npm run test-cov && npm run check-cov",
+    "test": "npm run lint && npm run test-cov",
     "mocha": "mocha",
     "test-cov": "istanbul cover _mocha",
     "check-cov": "istanbul check-coverage --statements 96 --branches 94 --functions 100 --lines 96",
@@ -34,8 +34,7 @@
   },
   "homepage": "https://github.com/TechnologyAdvice/Squiss#readme",
   "dependencies": {
-    "aws-sdk": "^2.3.5",
-    "bluebird": "^3.3.5"
+    "aws-sdk": "^2.3.5"
   },
   "devDependencies": {
     "chai": "^3.5.0",

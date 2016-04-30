@@ -178,7 +178,7 @@ describe('index', () => {
       const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 })
       inst.sqs = new SQSStub(5)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
       inst.on('message', (msg) => msgs.push(msg))
       inst.start()
       return wait().then(() => {
@@ -193,7 +193,7 @@ describe('index', () => {
       const msgs = []
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 1 })
       inst.sqs = new SQSStub(5)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
       inst.on('message', (msg) => msgs.push(msg))
       inst.start()
       return wait().then(() => {
@@ -207,7 +207,7 @@ describe('index', () => {
     it('deletes messages in batches', () => {
       inst = new Squiss({ queueUrl: 'foo', deleteWaitMs: 10 })
       inst.sqs = new SQSStub(15)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
       inst.on('message', (msg) => msg.del())
       inst.start()
       return wait().then(() => {
@@ -217,7 +217,7 @@ describe('index', () => {
     it('deletes immediately with batch size=1', () => {
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
       inst.sqs = new SQSStub(5)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatchAsync')
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
       inst.on('message', (msg) => msg.del())
       inst.start()
       return wait().then(() => {
@@ -265,7 +265,11 @@ describe('index', () => {
       const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
       inst.sqs = new SQSStub(1)
-      inst.sqs.deleteMessageBatchAsync = () => { throw new Error('test') }
+      inst.sqs.deleteMessageBatch = () => {
+        return {
+          promise: () => Promise.reject(new Error('test'))
+        }
+      }
       inst.on('error', spy)
       inst.deleteMessage({
         raw: {
@@ -282,7 +286,12 @@ describe('index', () => {
       const spy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo' })
       inst.sqs = new SQSStub(1)
-      inst.sqs.receiveMessageAsync = () => { throw new Error('test') }
+      inst.sqs.receiveMessage = () => {
+        return {
+          promise: () => Promise.reject(new Error('test')),
+          abort: () => {}
+        }
+      }
       inst.on('error', spy)
       inst.start()
       return wait().then(() => {
@@ -295,9 +304,12 @@ describe('index', () => {
       const errSpy = sinon.spy()
       inst = new Squiss({ queueUrl: 'foo', receiveBatchSize: 1, pollRetryMs: 5})
       inst.sqs = new SQSStub(2)
-      sinon.stub(inst.sqs, 'receiveMessageAsync', () => {
-        inst.sqs.receiveMessageAsync.restore()
-        throw new Error('test')
+      sinon.stub(inst.sqs, 'receiveMessage', () => {
+        inst.sqs.receiveMessage.restore()
+        return {
+          promise: () => Promise.reject(new Error('test')),
+          abort: () => {}
+        }
       })
       inst.on('message', msgSpy)
       inst.on('error', errSpy)
@@ -309,12 +321,12 @@ describe('index', () => {
     })
     it('emits error when GetQueueURL call fails', () => {
       const spy = sinon.spy()
-      AWS.SQS = class SQS {
-        getQueueUrl(params, cb) {
-          setImmediate(cb.bind(null, new Error('test')))
+      inst = new Squiss({ queueName: 'foo' })
+      inst.sqs.getQueueUrl = () => {
+        return {
+          promise: () => Promise.reject(new Error('test'))
         }
       }
-      inst = new Squiss({ queueName: 'foo' })
       inst.on('error', spy)
       inst.start()
       return wait().then(() => {
@@ -325,7 +337,6 @@ describe('index', () => {
   })
   describe('Testing', () => {
     it('allows queue URLs to be corrected to the endpoint hostname', () => {
-      AWS.SQS = function() { return new SQSStub(1) }
       inst = new Squiss({ queueName: 'foo', correctQueueUrl: true })
       inst.sqs = new SQSStub(1)
       return inst.getQueueUrl().then((url) => {

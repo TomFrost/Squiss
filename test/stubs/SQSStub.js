@@ -4,8 +4,6 @@
 
 'use strict'
 
-const Bluebird = require('bluebird')
-
 class SQSStub {
   constructor(msgCount, timeout) {
     this.msgs = []
@@ -24,40 +22,67 @@ class SQSStub {
     }
   }
 
-  deleteMessageBatchAsync(params) {
-    const res = {
-      Successful: [],
-      Failed: []
-    }
-    params.Entries.forEach((entry) => {
-      if (parseInt(entry.ReceiptHandle, 10) < this.msgCount) {
-        res.Successful.push({Id: entry.Id})
-      } else {
-        res.Failed.push({
-          Id: entry.Id,
-          SenderFault: true,
-          Code: '404',
-          Message: 'Does not exist'
-        })
+  deleteMessageBatch(params) {
+    return this._makeReq(() => {
+      const res = {
+        Successful: [],
+        Failed: []
       }
+      params.Entries.forEach((entry) => {
+        if (parseInt(entry.ReceiptHandle, 10) < this.msgCount) {
+          res.Successful.push({Id: entry.Id})
+        } else {
+          res.Failed.push({
+            Id: entry.Id,
+            SenderFault: true,
+            Code: '404',
+            Message: 'Does not exist'
+          })
+        }
+      })
+      return Promise.resolve(res)
     })
-    return Bluebird.resolve(res)
   }
 
-  getQueueUrlAsync(params) {
-    return Promise.resolve({
-      QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
+  getQueueUrl(params) {
+    return this._makeReq(() => {
+      return Promise.resolve({
+        QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
+      })
     })
   }
 
-  receiveMessageAsync(query) {
-    const msgs = this.msgs.splice(0, query.MaxNumberOfMessages)
-    return new Bluebird((resolve) => {
-      if (msgs.length) return resolve({Messages: msgs})
-      return setTimeout(() => {
-        resolve({})
-      }, this.timeout * 1000)
+  receiveMessage(params) {
+    return this._makeReq(() => {
+      const msgs = this.msgs.splice(0, params.MaxNumberOfMessages)
+      return new Promise((resolve, reject) => {
+        if (msgs.length) return resolve({Messages: msgs})
+        const timeout = setTimeout(() => {
+          resolve({})
+        }, this.timeout * 1000)
+        this._makeAbort(reject, timeout)
+        return undefined
+      })
     })
+  }
+
+  _makeAbort(reject, timeout) {
+    this._abort = () => {
+      if (timeout) clearTimeout(timeout)
+      const err = new Error('Request aborted by user')
+      err.code = err.name = 'RequestAbortedError'
+      err.retryable = false
+      err.time = new Date()
+      reject(err)
+    }
+  }
+
+  _makeReq(func) {
+    const nop = () => {}
+    return {
+      promise: func,
+      abort: this._abort || nop
+    }
   }
 }
 

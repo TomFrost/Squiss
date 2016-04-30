@@ -48,14 +48,17 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 ### squiss.deleteMessage(Message)
 Deletes a message. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
+### squiss.getQueueUrl()
+Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName. The correctQueueUrl setting applies to this result, if it was set.
+
 ### squiss.handledMessage()
 Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this.
 
 ### squiss.start()
 Starts polling SQS for new messages. Each new message is handed off in the `message` event.
 
-### squiss.stop()
-Hold on to your hats, this one stops the polling. Note that if this is called while there's an active request for new messages, the message event may still be fired afterward.
+### squiss.stop(soft=`false`)
+Hold on to your hats, this one stops the polling. If called with soft=`true` while there's an active request for new messages, the active request will not be aborted and the message event may still be fired afterward.
 
 ## Properties
 
@@ -66,7 +69,7 @@ The number of messages currently in-flight.
 `true` if Squiss is actively polling SQS. If it's not polling, we made the genius design decision to have this set to `false`.
 
 ### {Object} squiss.sqs
-For your convenience, Squiss provides direct access to the AWS SDK's SQS object, which can be handy for setting up or tearing down tests. For our convenience _and_ yours, we've already called Bluebird's [promisifyAll](http://bluebirdjs.com/docs/api/promise.promisifyall.html) on this.
+For your convenience, Squiss provides direct access to the AWS SDK's SQS object, which can be handy for setting up or tearing down tests. No need to thank Squiss. Squiss does this because Squiss cares.
 
 ## Events
 
@@ -85,6 +88,9 @@ Emitted when Squiss asks SQS for a new batch of messages, and gets some (or one)
 
 ### queueEmpty
 Emitted when Squiss asks SQS for new messages, and doesn't get any.
+
+### aborted
+Emitted after a hard stop() if a request for new messages was already in progress.
 
 ### maxInFlight
 Emitted when Squiss has hit the maxInFlight cap. At this point, Squiss won't retrieve any more messages until at least `opts.receiveBatchSize` in-flight messages have been deleted.
