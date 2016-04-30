@@ -10,6 +10,12 @@ const Message = require('./Message')
 const url = require('url')
 
 /**
+ * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
+ * @type {number}
+ */
+const AWS_MAX_SEND_BATCH = 10
+
+/**
  * Option defaults.
  * @type {{receiveBatchSize: number, receiveWaitTimeSecs: number, deleteBatchSize: number, deleteWaitMs: number,
  *   maxInFlight: number, unwrapSns: boolean, msgFormat: string, correctQueueUrl: boolean}}
@@ -112,6 +118,34 @@ class Squiss extends EventEmitter {
   }
 
   /**
+   * Creates the configured queue in Amazon SQS and retrieves its queue URL. Note that this method can only be called
+   * if Squiss was instantiated with the queueName property.
+   * @param {{DelaySeconds: number, MaximumMessageSize: number, MessageRetentionPeriod: number, Policy: Object,
+   *    ReceiveMessageWaitTimeSeconds: number, VisibilityTimeout: number}} [attributes] An optional attribute mapping
+   *    to send to SQS. Attributes and their defaults can be found at
+   *    http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#createQueue-property. Squiss will set
+   *    ReceiveMessageWaitTimeSeconds to the configured receiveWaitTimeSeconds if not otherwise specified.
+   * @returns {Promise.<string>} Resolves with the URL of the created queue, rejects with the official AWS SDK's
+   *    error object.
+   */
+  createQueue(attributes) {
+    if (!this._opts.queueName) {
+      return Promise.reject(new Error('Squiss was not instantiated with a queueName'))
+    }
+    const params = {
+      QueueName: this._opts.queueName,
+      Attributes: {
+        ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs.toString()
+      }
+    }
+    Object.assign(params.Attributes, attributes || {})
+    return this.sqs.createQueue(params).promise().then(res => {
+      this._queueUrl = res.QueueUrl
+      return res.QueueUrl
+    })
+  }
+
+  /**
    * Queues the given message for deletion. The message will actually be deleted from SQS per the settings
    * supplied to the constructor.
    * @param {Message} msg The message to be deleted.
@@ -133,6 +167,16 @@ class Squiss extends EventEmitter {
         this._deleteMessages(delBatch)
       }, this._opts.deleteWaitMs)
     }
+  }
+
+  /**
+   * Deletes the configured queue.
+   * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
+   */
+  deleteQueue() {
+    return this.getQueueUrl().then((queueUrl) => {
+      return this.sqs.deleteQueue({ QueueUrl: queueUrl }).promise()
+    })
   }
 
   /**
@@ -172,6 +216,41 @@ class Squiss extends EventEmitter {
     if (!this._inFlight) {
       this.emit('drained')
     }
+  }
+
+  sendMessage(message, delay, attributes) {
+    return this.getQueueUrl().then((queueUrl) => {
+      const params = {
+        QueueUrl: queueUrl,
+        MessageBody: typeof message === 'object' ? JSON.stringify(message) : message
+      }
+      if (delay) params.DelaySeconds = delay
+      if (attributes) params.MessageAttributes = attributes
+      return this.sqs.sendMessage(params).promise()
+    })
+  }
+
+  sendMessages(messages, delay, attributes) {
+    const batches = []
+    const msgs = Array.isArray(messages) ? messages : [messages]
+    for (let i = 0; i < msgs.length; i++) {
+      if (i % AWS_MAX_SEND_BATCH === 0) batches.push([])
+      batches[batches.length - 1].push(msgs[i])
+    }
+    return Promise.all(batches.map((batch, idx) => {
+      return this._sendMessageBatch(batch, delay, attributes, idx * AWS_MAX_SEND_BATCH)
+    })).then((results) => {
+      const merged = {Successful: [], Failed: []}
+      results.forEach((res) => {
+        if (res.Successful) {
+          res.Successful.forEach(elem => merged.Successful.push(elem))
+        }
+        if (res.Failed) {
+          res.Failed.forEach(elem => merged.Failed.push(elem))
+        }
+      })
+      return merged
+    })
   }
 
   /**
@@ -291,6 +370,29 @@ class Squiss extends EventEmitter {
       }
     })
     return true
+  }
+
+  _sendMessageBatch(messages, delay, attributes, startIndex) {
+    if (!Array.isArray(messages) || messages.length > AWS_MAX_SEND_BATCH) {
+      return Promise.reject(`messages must be an array of ${AWS_MAX_SEND_BATCH} messages at most.`)
+    }
+    const start = startIndex || 0
+    return this.getQueueUrl().then((queueUrl) => {
+      const params = {
+        QueueUrl: queueUrl,
+        Entries: []
+      }
+      messages.forEach((msg, idx) => {
+        const entry = {
+          Id: (start + idx).toString(),
+          MessageBody: typeof msg === 'object' ? JSON.stringify(msg) : msg
+        }
+        if (delay) entry.DelaySeconds = delay
+        if (attributes) entry.MessageAttributes = attributes
+        params.Entries.push(entry)
+      })
+      return this.sqs.sendMessageBatch(params).promise()
+    })
   }
 
   /**

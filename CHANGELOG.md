@@ -12,10 +12,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - New option: activePollIntervalMs, allowing SQS requests to be spaced out when the queue has messages
 - New option: idlePollIntervalMs, allowing SQS requests to be spaced out when the queue is empty
 - `getQueueUrl` method to retrieve the configured queue's URL, even if only the name was provided to the constructor
+- `createQueue` method to create the configured queue
+- `deleteQueue` method to delete the configured queue
+- `sendMessage` method to send a message to the configured queue
+- `sendMessages` method to send an array of messages of any size (within reason) to the configured queue
 
 ### Changed
 - Dropped support for Node 0.12. For Node 0.12 support, consider compiling with an ES6 transpiler such as Babel, or using version 0.7.
 - Switched codebase to native ES6, updating to newest TechnologyAdvice style guide
+- `stop()` now aborts any ongoing receiveMessage request by default. It now accepts a `soft` argument (boolean) to soft-stop the poller without the abort functionality.
 
 ## [v0.7.0]
 ### Added
