@@ -79,27 +79,17 @@ class Squiss extends EventEmitter {
    */
   constructor(opts) {
     super()
-    if (!opts) opts = {}
     this.sqs = new AWS.SQS(opts.awsConfig)
-    this._queueUrl = opts.queueUrl
-    this._queueName = opts.queueName
-    this._accountNumber = opts.accountNumber
-    this._correctQueueUrl = opts.correctQueueUrl || optDefaults.correctQueueUrl
-    this._deleteBatchSize = Math.min(opts.deleteBatchSize || optDefaults.deleteBatchSize, 10)
-    this._deleteWaitMs = opts.deleteWaitMs || optDefaults.deleteWaitMs
-    this._maxInFlight = opts.maxInFlight || opts.maxInFlight === 0 ?  opts.maxInFlight : optDefaults.maxInFlight
-    this._receiveBatchSize = Math.min(opts.receiveBatchSize || optDefaults.receiveBatchSize, this._maxInFlight !== 0 ? this._maxInFlight : 10, 10)
-    this._unwrapSns = opts.hasOwnProperty('unwrapSns') ? opts.unwrapSns : optDefaults.unwrapSns
-    this._bodyFormat = opts.bodyFormat || optDefaults.bodyFormat
-    this._receiveWaitTimeSecs = opts.receiveWaitTimeSecs || optDefaults.receiveWaitTimeSecs
-    this._pollRetryMs = opts.pollRetryMs || optDefaults.pollRetryMs
-    this._activePollIntervalMs = opts.activePollIntervalMs || optDefaults.activePollIntervalMs
-    this._idlePollIntervalMs = opts.idlePollIntervalMs || optDefaults.idlePollIntervalMs
-    this._visibilityTimeout = opts.visibilityTimeout
+    this._opts = {}
+    Object.assign(this._opts, optDefaults, opts)
+    this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize, 10)
+    this._opts.receiveBatchSize = Math.min(this._opts.receiveBatchSize,
+      this._opts.maxInFlight > 0 ? this._opts.maxInFlight : 10, 10)
     this._running = false
     this._inFlight = 0
     this._delQueue = []
     this._delTimer = null
+    this._queueUrl = opts.queueUrl
     if (!opts.queueUrl && !opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
     }
@@ -129,19 +119,19 @@ class Squiss extends EventEmitter {
   deleteMessage(msg) {
     this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
     this.handledMessage()
-    if (this._delQueue.length >= this._deleteBatchSize) {
+    if (this._delQueue.length >= this._opts.deleteBatchSize) {
       if (this._delTimer) {
         clearTimeout(this._delTimer)
         this._delTimer = null
       }
-      const delBatch = this._delQueue.splice(0, this._deleteBatchSize)
+      const delBatch = this._delQueue.splice(0, this._opts.deleteBatchSize)
       this._deleteMessages(delBatch)
     } else if (!this._delTimer) {
       this._delTimer = setTimeout(() => {
         this._delTimer = null
         const delBatch = this._delQueue.splice(0, this._delQueue.length)
         this._deleteMessages(delBatch)
-      }, this._deleteWaitMs)
+      }, this._opts.deleteWaitMs)
     }
   }
 
@@ -153,13 +143,13 @@ class Squiss extends EventEmitter {
    */
   getQueueUrl() {
     if (this._queueUrl) return Promise.resolve(this._queueUrl)
-    const params = { QueueName: this._queueName }
-    if (this._accountNumber) {
-      params.QueueOwnerAWSAccountId = this._accountNumber
+    const params = { QueueName: this._opts.queueName }
+    if (this._opts.accountNumber) {
+      params.QueueOwnerAWSAccountId = this._opts.accountNumber
     }
     return this.sqs.getQueueUrl(params).promise().then(data => {
       this._queueUrl = data.QueueUrl
-      if (this._correctQueueUrl) {
+      if (this._opts.correctQueueUrl) {
         let newUrl = url.parse(this.sqs.config.endpoint)
         const parsedQueueUrl = url.parse(this._queueUrl)
         newUrl.pathname = parsedQueueUrl.pathname
@@ -241,8 +231,8 @@ class Squiss extends EventEmitter {
     messages.forEach((msg) => {
       const message = new Message({
         squiss: this,
-        unwrapSns: this._unwrapSns,
-        bodyFormat: this._bodyFormat,
+        unwrapSns: this._opts.unwrapSns,
+        bodyFormat: this._opts.bodyFormat,
         msg
       })
       this._inFlight++
@@ -262,11 +252,11 @@ class Squiss extends EventEmitter {
     const next = this._getBatch.bind(this, queueUrl)
     const params = {
       QueueUrl: queueUrl,
-      MaxNumberOfMessages: this._receiveBatchSize,
-      WaitTimeSeconds: this._receiveWaitTimeSecs
+      MaxNumberOfMessages: this._opts.receiveBatchSize,
+      WaitTimeSeconds: this._opts.receiveWaitTimeSecs
     }
-    if (this._visibilityTimeout !== undefined) {
-      params.VisibilityTimeout = this._visibilityTimeout
+    if (this._opts.visibilityTimeout !== undefined) {
+      params.VisibilityTimeout = this._opts.visibilityTimeout
     }
     this._activeReq = this.sqs.receiveMessage(params)
     this._activeReq.promise().then((data) => {
@@ -280,10 +270,10 @@ class Squiss extends EventEmitter {
         gotMessages = false
       }
       if (this._slotsAvailable()) {
-        if (gotMessages && this._activePollIntervalMs) {
-          setTimeout(next, this._activePollIntervalMs)
-        } else if (!gotMessages && this._idlePollIntervalMs) {
-          setTimeout(next, this._idlePollIntervalMs)
+        if (gotMessages && this._opts.activePollIntervalMs) {
+          setTimeout(next, this._opts.activePollIntervalMs)
+        } else if (!gotMessages && this._opts.idlePollIntervalMs) {
+          setTimeout(next, this._opts.idlePollIntervalMs)
         } else {
           next()
         }
@@ -296,7 +286,7 @@ class Squiss extends EventEmitter {
       if (err.code && err.code === 'RequestAbortedError') {
         this.emit('aborted')
       } else {
-        setTimeout(next, this._pollRetryMs)
+        setTimeout(next, this._opts.pollRetryMs)
         this.emit('error', err)
       }
     })
@@ -310,7 +300,7 @@ class Squiss extends EventEmitter {
    * @private
    */
   _slotsAvailable() {
-    return !this._maxInFlight || this._inFlight <= this._maxInFlight - this._receiveBatchSize
+    return !this._opts.maxInFlight || this._inFlight <= this._opts.maxInFlight - this._opts.receiveBatchSize
   }
 
   _startPoller() {
