@@ -14,11 +14,7 @@ class SQSStub {
       endpoint: 'http://foo.bar'
     }
     for (let i = 0; i < msgCount; i++) {
-      this.msgs.push({
-        MessageId: `id_${i}`,
-        ReceiptHandle: `${i}`,
-        body: `{"num": ${i}}`
-      })
+      this._addMessage(i)
     }
   }
 
@@ -76,7 +72,8 @@ class SQSStub {
     })
   }
 
-  sendMessage() {
+  sendMessage(params) {
+    this._addMessage(params.QueueUrl, params.MessageBody)
     return this._makeReq(() => {
       return Promise.resolve({
         MessageId: 'd2206b43-df52-5161-a8e8-24dc83737962',
@@ -92,7 +89,8 @@ class SQSStub {
       Failed: []
     }
     params.Entries.forEach((entry, idx) => {
-      if (entry.MessageBody) {
+      if (entry.MessageBody !== 'FAIL') {
+        this._addMessage(entry.Id, entry.MessageBody)
         res.Successful.push({
           Id: entry.Id,
           MessageId: idx.toString(),
@@ -109,6 +107,14 @@ class SQSStub {
       }
     })
     return this._makeReq(() => Promise.resolve(res))
+  }
+
+  _addMessage(id, body) {
+    this.msgs.push({
+      MessageId: `id_${id}`,
+      ReceiptHandle: `${id}`,
+      Body: body || `{"num": ${id}}`
+    })
   }
 
   _makeAbort(reject, timeout) {
