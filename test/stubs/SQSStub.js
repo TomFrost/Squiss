@@ -4,8 +4,11 @@
 
 'use strict'
 
-class SQSStub {
+const EventEmitter = require('events').EventEmitter
+
+class SQSStub extends EventEmitter {
   constructor(msgCount, timeout) {
+    super()
     this.msgs = []
     this.timeout = timeout === undefined ? 20 : timeout
     this.msgCount = msgCount
@@ -63,10 +66,30 @@ class SQSStub {
       const msgs = this.msgs.splice(0, params.MaxNumberOfMessages)
       return new Promise((resolve, reject) => {
         if (msgs.length) return resolve({Messages: msgs})
+        let removeListeners = () => {}
         const timeout = setTimeout(() => {
+          removeListeners()
           resolve({})
-        }, this.timeout * 1000)
-        this._makeAbort(reject, timeout)
+        }, this.timeout)
+        const onAbort = () => {
+          removeListeners()
+          const err = new Error('Request aborted by user')
+          err.code = err.name = 'RequestAbortedError'
+          err.retryable = false
+          err.time = new Date()
+          reject(err)
+        }
+        const onNewMessage = (msg) => {
+          removeListeners()
+          resolve({Messages: [msg]})
+        }
+        removeListeners = () => {
+          clearTimeout(timeout)
+          this.removeListener('newMessage', onNewMessage)
+          this.removeListener('abort', onAbort)
+        }
+        this.once('abort', onAbort)
+        this.once('newMessage', onNewMessage)
         return undefined
       })
     })
@@ -115,24 +138,13 @@ class SQSStub {
       ReceiptHandle: `${id}`,
       Body: body || `{"num": ${id}}`
     })
-  }
-
-  _makeAbort(reject, timeout) {
-    this._abort = () => {
-      if (timeout) clearTimeout(timeout)
-      const err = new Error('Request aborted by user')
-      err.code = err.name = 'RequestAbortedError'
-      err.retryable = false
-      err.time = new Date()
-      reject(err)
-    }
+    this.emit('newMessage', this.msgs[this.msgs.length - 1])
   }
 
   _makeReq(func) {
-    const nop = () => {}
     return {
       promise: func,
-      abort: this._abort || nop
+      abort: () => { this.emit('abort') }
     }
   }
 }
