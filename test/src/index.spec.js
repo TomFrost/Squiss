@@ -410,4 +410,49 @@ describe('index', () => {
       })
     })
   })
+  describe('getQueueUrl', () => {
+    it('resolves with the provided queueUrl without hitting SQS', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'getQueueUrl')
+      return inst.getQueueUrl((queueUrl) => {
+        queueUrl.should.equal('foo')
+        spy.should.not.be.called
+      })
+    })
+    it('asks SQS for the URL if queueUrl was not provided', () => {
+      inst = new Squiss({ queueName: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'getQueueUrl')
+      return inst.getQueueUrl((queueUrl) => {
+        queueUrl.indexOf('http').should.equal(0)
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({ QueueName: 'foo' })
+      })
+    })
+    it('caches the queueUrl after the first call to SQS', () => {
+      inst = new Squiss({ queueName: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'getQueueUrl')
+      return inst.getQueueUrl(() => {
+        spy.should.be.calledOnce
+        return inst.getQueueUrl()
+      }).then(() => {
+        spy.should.be.calledOnce
+      })
+    })
+    it('includes the account number if provided', () => {
+      inst = new Squiss({ queueName: 'foo', accountNumber: 1234 })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'getQueueUrl')
+      return inst.getQueueUrl((queueUrl) => {
+        queueUrl.indexOf('http').should.equal(0)
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueName: 'foo',
+          QueueOwnerAWSAccountId: '1234'
+        })
+      })
+    })
+  })
 })

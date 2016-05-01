@@ -207,7 +207,7 @@ class Squiss extends EventEmitter {
     if (this._queueUrl) return Promise.resolve(this._queueUrl)
     const params = { QueueName: this._opts.queueName }
     if (this._opts.accountNumber) {
-      params.QueueOwnerAWSAccountId = this._opts.accountNumber
+      params.QueueOwnerAWSAccountId = this._opts.accountNumber.toString()
     }
     return this.sqs.getQueueUrl(params).promise().then(data => {
       this._queueUrl = data.QueueUrl
