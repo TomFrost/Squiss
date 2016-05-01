@@ -17,8 +17,7 @@ const AWS_MAX_SEND_BATCH = 10
 
 /**
  * Option defaults.
- * @type {{receiveBatchSize: number, receiveWaitTimeSecs: number, deleteBatchSize: number, deleteWaitMs: number,
- *   maxInFlight: number, unwrapSns: boolean, msgFormat: string, correctQueueUrl: boolean}}
+ * @type {Object}
  */
 const optDefaults = {
   receiveBatchSize: 10,
@@ -31,7 +30,11 @@ const optDefaults = {
   correctQueueUrl: false,
   pollRetryMs: 2000,
   activePollIntervalMs: 0,
-  idlePollIntervalMs: 0
+  idlePollIntervalMs: 0,
+  delaySecs: 0,
+  maxMessageBytes: 262144,
+  messageRetentionSecs: 345600,
+  visibilityTimeoutSecs: 30
 }
 
 /**
@@ -81,7 +84,20 @@ class Squiss extends EventEmitter {
    *    retrieve messages from SQS fails.
    * @param {number} [opts.activePollIntervalMs=0] The number of milliseconds to wait between requesting batches of
    *    messages when the queue is not empty, and the maxInFlight cap has not been hit.
-   * @param {number} [opts.idlePollIntervalMs
+   * @param {number} [opts.idlePollIntervalMs=0] The number of milliseconds to wait before requesting a batch of
+   *    messages when the queue was empty on the prior request.
+   * @param {number} [opts.delaySecs=0] The number of milliseconds by which to delay the delivery of new messages into
+   *    the queue by default. This is only used when calling {@link #createQueue}.
+   * @param {number} [opts.maxMessageBytes=262144] The maximum size of a single message, in bytes, that the queue can
+   *    support. This is only used when calling {@link #createQueue}. Default is the maximum, 256KB.
+   * @param {number} [opts.messageRetentionSecs=345600] The amount of time for which to retain messages in the queue
+   *    until they expire, in seconds. This is only used when calling {@link #createQueue}. Default is equivalent to
+   *    4 days, maximum is 1209600 (14 days).
+   * @param {number} [opts.visibilityTimeoutSecs=30] The amount of time, in seconds, that received messages will be
+   *    unavailable to other pollers without being deleted. This is only used when calling {@link #createQueue}.
+   * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
+   *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
+   *    more information.
    */
   constructor(opts) {
     super()
@@ -120,25 +136,26 @@ class Squiss extends EventEmitter {
   /**
    * Creates the configured queue in Amazon SQS and retrieves its queue URL. Note that this method can only be called
    * if Squiss was instantiated with the queueName property.
-   * @param {{DelaySeconds: number, MaximumMessageSize: number, MessageRetentionPeriod: number, Policy: Object,
-   *    ReceiveMessageWaitTimeSeconds: number, VisibilityTimeout: number}} [attributes] An optional attribute mapping
-   *    to send to SQS. Attributes and their defaults can be found at
-   *    http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#createQueue-property. Squiss will set
-   *    ReceiveMessageWaitTimeSeconds to the configured receiveWaitTimeSeconds if not otherwise specified.
    * @returns {Promise.<string>} Resolves with the URL of the created queue, rejects with the official AWS SDK's
    *    error object.
    */
-  createQueue(attributes) {
+  createQueue() {
     if (!this._opts.queueName) {
       return Promise.reject(new Error('Squiss was not instantiated with a queueName'))
     }
     const params = {
       QueueName: this._opts.queueName,
       Attributes: {
-        ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs.toString()
+        ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs.toString(),
+        DelaySeconds: this._opts.delaySecs.toString(),
+        MaximumMessageSize: this._opts.maxMessageBytes.toString(),
+        MessageRetentionPeriod: this._opts.messageRetentionSecs.toString(),
+        VisibilityTimeout: this._opts.visibilityTimeoutSecs.toString()
       }
     }
-    Object.assign(params.Attributes, attributes || {})
+    if (this._opts.queuePolicy) {
+      params.Attributes.Policy = this._opts.queuePolicy
+    }
     return this.sqs.createQueue(params).promise().then(res => {
       this._queueUrl = res.QueueUrl
       return res.QueueUrl
@@ -218,6 +235,16 @@ class Squiss extends EventEmitter {
     }
   }
 
+  /**
+   * Sends an individual message to the configured queue.
+   * @param {string|Object} message The message to be sent. Objects will be JSON.stringified.
+   * @param {number} [delay] The number of seconds by which to delay the delivery of the message, max 900. If not
+   *    specified, the queue default will be used.
+   * @param {Object} [attributes] An optional attributes mapping to associate with the message. For more information,
+   *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessage-property.
+   * @returns {Promise.<{MessageId: string, MD5OfMessageAttributes: string, MD5OfMessageBody: string}>} Resolves with
+   *    the official AWS SDK sendMessage response, rejects with the official error object.
+   */
   sendMessage(message, delay, attributes) {
     return this.getQueueUrl().then((queueUrl) => {
       const params = {
@@ -230,6 +257,32 @@ class Squiss extends EventEmitter {
     })
   }
 
+  /**
+   * Sends an array of any number of messages to the configured SQS queue, breaking them down into appropriate batch
+   * requests executed in parallel (or as much as the default HTTP agent allows). The response is closely aligned to
+   * the official AWS SDK's sendMessageBatch response, except the results from all batch requests are merged. Expect
+   * a result similar to:
+   *
+   * {
+   *   Successful: [
+   *     {Id: string, MessageId: string, MD5OfMessageAttributes: string, MD5OfMessageBody: string}
+   *   ],
+   *   Failed: [
+   *     {Id: string, SenderFault: boolean, Code: string, Message: string}
+   *   ]
+   * }
+   *
+   * See http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property for full details.
+   * The "Id" supplied in the response will be the index of the message in the original messages array, in string form.
+   * @param {Array<string|Object>} messages An array of messages to be sent. Objects will be JSON.stringified.
+   * @param {number} [delay] The number of seconds by which to delay the delivery of the messages, max 900. If not
+   *    specified, the queue default will be used.
+   * @param {Object} [attributes] An optional attributes mapping to associate with all messages. For more information,
+   *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property.
+   * @returns {Promise.<{Successful: Array<{Id: string, MessageId: string, MD5OfMessageAttributes: string,
+   *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
+   *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
+   */
   sendMessages(messages, delay, attributes) {
     const batches = []
     const msgs = Array.isArray(messages) ? messages : [messages]
@@ -372,6 +425,20 @@ class Squiss extends EventEmitter {
     return true
   }
 
+  /**
+   * Sends a batch of a maximum of 10 messages to Amazon SQS. The Id generated for each will be the stringified
+   * index of each message in the array, plus the startIndex
+   * @param {Array<string|Object>} messages An array of messages to be sent. Objects will be JSON.stringified.
+   * @param {number} [delay] The number of seconds by which to delay the delivery of the messages, max 900. If not
+   *    specified, the queue default will be used.
+   * @param {Object} [attributes] An optional attributes mapping to associate with all messages. For more information,
+   *    see http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property.
+   * @param {number} [startIndex=0] The index at which to start numbering the messages.
+   * @returns {Promise.<{Successful: Array<{Id: string, MessageId: string, MD5OfMessageAttributes: string,
+   *    MD5OfMessageBody: string}>, Failed: Array<{Id: string, SenderFault: boolean, Code: string,
+   *    Message: string}>}>} Resolves with successful and failed messages, rejects with API error on critical failure.
+   * @private
+   */
   _sendMessageBatch(messages, delay, attributes, startIndex) {
     if (!Array.isArray(messages) || messages.length > AWS_MAX_SEND_BATCH) {
       return Promise.reject(`messages must be an array of ${AWS_MAX_SEND_BATCH} messages at most.`)
@@ -405,6 +472,10 @@ class Squiss extends EventEmitter {
     return !this._opts.maxInFlight || this._inFlight <= this._opts.maxInFlight - this._opts.receiveBatchSize
   }
 
+  /**
+   * Starts the polling process, regardless of the status of the this._running or this._paused flags.
+   * @private
+   */
   _startPoller() {
     this.getQueueUrl()
       .then(queueUrl => this._getBatch(queueUrl))
