@@ -344,4 +344,70 @@ describe('index', () => {
       })
     })
   })
+  describe('createQueue', () => {
+    it('rejects if Squiss was instantiated without queueName', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(1)
+      return inst.createQueue().should.be.rejected
+    })
+    it('calls SQS SDK createQueue method with default attributes', () => {
+      inst = new Squiss({ queueName: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'createQueue')
+      return inst.createQueue().then((queueUrl) => {
+        queueUrl.should.be.a.string
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueName: 'foo',
+          Attributes: {
+            ReceiveMessageWaitTimeSeconds: '20',
+            DelaySeconds: '0',
+            MaximumMessageSize: '262144',
+            MessageRetentionPeriod: '345600',
+            VisibilityTimeout: '30'
+          }
+        })
+      })
+    })
+    it('calls SQS SDK createQueue method with custom attributes', () => {
+      inst = new Squiss({
+        queueName: 'foo',
+        receiveWaitTimeSecs: 10,
+        delaySecs: 300,
+        maxMessageBytes: 100,
+        messageRetentionSecs: 60,
+        visibilityTimeoutSecs: 10,
+        queuePolicy: {foo: 'bar'}
+      })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'createQueue')
+      return inst.createQueue().then((queueUrl) => {
+        queueUrl.should.be.a.string
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueName: 'foo',
+          Attributes: {
+            ReceiveMessageWaitTimeSeconds: '10',
+            DelaySeconds: '300',
+            MaximumMessageSize: '100',
+            MessageRetentionPeriod: '60',
+            VisibilityTimeout: '10',
+            Policy: {foo: 'bar'}
+          }
+        })
+      })
+    })
+  })
+  describe('deleteQueue', () => {
+    it('calls SQS SDK deleteQueue method with queue URL', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'deleteQueue')
+      return inst.deleteQueue().then((res) => {
+        res.should.be.an.object
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({ QueueUrl: 'foo' })
+      })
+    })
+  })
 })

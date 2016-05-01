@@ -22,6 +22,10 @@ class SQSStub {
     }
   }
 
+  createQueue(params) {
+    return this.getQueueUrl(params)
+  }
+
   deleteMessageBatch(params) {
     return this._makeReq(() => {
       const res = {
@@ -41,6 +45,12 @@ class SQSStub {
         }
       })
       return Promise.resolve(res)
+    })
+  }
+
+  deleteQueue() {
+    return this._makeReq(() => {
+      return Promise.resolve({ ResponseMetadata: { RequestId: 'd2206b43-df52-5161-a8e8-24dc83737962' } })
     })
   }
 
@@ -64,6 +74,41 @@ class SQSStub {
         return undefined
       })
     })
+  }
+
+  sendMessage() {
+    return this._makeReq(() => {
+      return Promise.resolve({
+        MessageId: 'd2206b43-df52-5161-a8e8-24dc83737962',
+        MD5OfMessageAttributes: 'deadbeefdeadbeefdeadbeefdeadbeef',
+        MD5OfMessageBody: 'deadbeefdeadbeefdeadbeefdeadbeef'
+      })
+    })
+  }
+
+  sendMessageBatch(params) {
+    const res = {
+      Successful: [],
+      Failed: []
+    }
+    params.Entries.forEach((entry, idx) => {
+      if (entry.MessageBody) {
+        res.Successful.push({
+          Id: entry.Id,
+          MessageId: idx.toString(),
+          MD5OfMessageAttributes: 'deadbeefdeadbeefdeadbeefdeadbeef',
+          MD5OfMessageBody: 'deadbeefdeadbeefdeadbeefdeadbeef'
+        })
+      } else {
+        res.Failed.push({
+          Id: entry.Id,
+          SenderFault: true,
+          Code: 'Message is empty',
+          Message: ''
+        })
+      }
+    })
+    return this._makeReq(() => Promise.resolve(res))
   }
 
   _makeAbort(reject, timeout) {

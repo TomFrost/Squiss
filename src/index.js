@@ -101,6 +101,7 @@ class Squiss extends EventEmitter {
    */
   constructor(opts) {
     super()
+    opts = opts || {}
     this.sqs = new AWS.SQS(opts.awsConfig)
     this._opts = {}
     Object.assign(this._opts, optDefaults, opts)
