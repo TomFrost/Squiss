@@ -79,9 +79,9 @@ class SQSStub extends EventEmitter {
           err.time = new Date()
           reject(err)
         }
-        const onNewMessage = (msg) => {
+        const onNewMessage = () => {
           removeListeners()
-          resolve({Messages: [msg]})
+          resolve({Messages: [this.msgs.shift()]})
         }
         removeListeners = () => {
           clearTimeout(timeout)
@@ -138,7 +138,7 @@ class SQSStub extends EventEmitter {
       ReceiptHandle: `${id}`,
       Body: body || `{"num": ${id}}`
     })
-    this.emit('newMessage', this.msgs[this.msgs.length - 1])
+    this.emit('newMessage')
   }
 
   _makeReq(func) {
