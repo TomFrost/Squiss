@@ -2,6 +2,9 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
+Nothing yet!
+
+## [v1.0.0]
 ### Added
 - The `gotMessages` event, which fires when Squiss retrieves a new batch of messages from SQS
 - The `maxInFlight` event, which fires when Squiss stops requesting new messages due to hitting the maxInFlight cap
@@ -63,8 +66,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/0.7.0...HEAD
-[v0.6.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.6.0...0.7.0
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/1.0.0...HEAD
+[v1.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.7.0...1.0.0
+[v0.7.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.6.0...0.7.0
 [v0.6.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.1...0.6.0
 [v0.5.1]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.0...0.5.1
 [v0.5.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.4.0...0.5.0
