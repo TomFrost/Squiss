@@ -33,8 +33,7 @@ const optDefaults = {
   idlePollIntervalMs: 0,
   delaySecs: 0,
   maxMessageBytes: 262144,
-  messageRetentionSecs: 345600,
-  visibilityTimeoutSecs: 30
+  messageRetentionSecs: 345600
 }
 
 /**
@@ -76,10 +75,11 @@ class Squiss extends EventEmitter {
    *    metadata wrapper.
    * @param {string} [opts.bodyFormat="plain"] The format of the incoming message. Set to "json" to automatically call
    *    `JSON.parse()` on each incoming message.
-   * @param {number} [opts.visibilityTimeout] The SQS VisibilityTimeout to apply to each message. This is the number of
-   *    seconds that each received message should be made inaccessible to other receive calls, so that a message will
-   *    not be received more than once before it is processed and deleted. If not specified, the default for the SQS
-   *    queue will be used.
+   * @param {number} [opts.visibilityTimeoutSecs] The SQS VisibilityTimeout to apply to each message. This is the
+   *    number of seconds that each received message should be made inaccessible to other receive calls, so that a
+   *    message will not be received more than once before it is processed and deleted. If not specified, the default
+   *    for the SQS queue will be used when receiving messages, and the SQS default (30) will be used when creating a
+   *    queue.
    * @param {number} [opts.pollRetryMs=2000] The number of milliseconds to wait before retrying when Squiss's call to
    *    retrieve messages from SQS fails.
    * @param {number} [opts.activePollIntervalMs=0] The number of milliseconds to wait between requesting batches of
@@ -93,8 +93,6 @@ class Squiss extends EventEmitter {
    * @param {number} [opts.messageRetentionSecs=345600] The amount of time for which to retain messages in the queue
    *    until they expire, in seconds. This is only used when calling {@link #createQueue}. Default is equivalent to
    *    4 days, maximum is 1209600 (14 days).
-   * @param {number} [opts.visibilityTimeoutSecs=30] The amount of time, in seconds, that received messages will be
-   *    unavailable to other pollers without being deleted. This is only used when calling {@link #createQueue}.
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
@@ -113,6 +111,10 @@ class Squiss extends EventEmitter {
     this._delQueue = []
     this._delTimer = null
     this._queueUrl = opts.queueUrl
+    if (opts.visibilityTimeout && !opts.visibilityTimeoutSecs) {
+      this._opts.visibilityTimeoutSecs = opts.visibilityTimeout
+      process.stderr.write('DEPRECATED: Squiss: Use opts.visibilityTimeoutSecs instead of opts.visibilityTimeout.\n')
+    }
     if (!opts.queueUrl && !opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
     }
@@ -150,9 +152,11 @@ class Squiss extends EventEmitter {
         ReceiveMessageWaitTimeSeconds: this._opts.receiveWaitTimeSecs.toString(),
         DelaySeconds: this._opts.delaySecs.toString(),
         MaximumMessageSize: this._opts.maxMessageBytes.toString(),
-        MessageRetentionPeriod: this._opts.messageRetentionSecs.toString(),
-        VisibilityTimeout: this._opts.visibilityTimeoutSecs.toString()
+        MessageRetentionPeriod: this._opts.messageRetentionSecs.toString()
       }
+    }
+    if (this._opts.visibilityTimeoutSecs) {
+      params.Attributes.VisibilityTimeout = this._opts.visibilityTimeoutSecs.toString()
     }
     if (this._opts.queuePolicy) {
       params.Attributes.Policy = this._opts.queuePolicy
@@ -374,19 +378,17 @@ class Squiss extends EventEmitter {
    * Gets a new batch of messages from Amazon SQS. Note that this function does no checking of the current inFlight
    * count, or the current running status. A `message` event will be emitted for each new message, with the provided
    * object being an instance of Squiss' Message class.
-   * @returns {boolean} true if a request was triggered; false otherwise.
    * @private
    */
   _getBatch(queueUrl) {
-    if (this._activeReq || !this._running) return false
     const next = this._getBatch.bind(this, queueUrl)
     const params = {
       QueueUrl: queueUrl,
       MaxNumberOfMessages: this._opts.receiveBatchSize,
       WaitTimeSeconds: this._opts.receiveWaitTimeSecs
     }
-    if (this._opts.visibilityTimeout !== undefined) {
-      params.VisibilityTimeout = this._opts.visibilityTimeout
+    if (this._opts.visibilityTimeoutSecs !== undefined) {
+      params.VisibilityTimeout = this._opts.visibilityTimeoutSecs
     }
     this._activeReq = this.sqs.receiveMessage(params)
     this._activeReq.promise().then((data) => {
@@ -420,7 +422,6 @@ class Squiss extends EventEmitter {
         this.emit('error', err)
       }
     })
-    return true
   }
 
   /**

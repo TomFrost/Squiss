@@ -128,6 +128,20 @@ describe('index', () => {
         qeSpy.should.be.calledOnce
       })
     })
+    it('emits aborted when stopped with an active message req', () => {
+      const spy = sinon.spy()
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(0, 1000)
+      inst.on('aborted', spy)
+      inst.start()
+      return wait().then(() => {
+        spy.should.not.be.called
+        inst.stop()
+        return wait()
+      }).then(() => {
+        spy.should.be.calledOnce
+      })
+    })
     it('observes the maxInFlight cap', () => {
       const msgSpy = sinon.spy()
       const maxSpy = sinon.spy()
@@ -170,6 +184,65 @@ describe('index', () => {
         return wait(1)
       }).then(() => {
         inst.inFlight.should.equal(3)
+      })
+    })
+    it('pauses polling when maxInFlight is reached; resumes after', () => {
+      const msgSpy = sinon.spy()
+      const maxSpy = sinon.spy()
+      inst = new Squiss({ queueUrl: 'foo', maxInFlight: 10 })
+      inst.sqs = new SQSStub(11, 1000)
+      inst.on('message', msgSpy)
+      inst.on('maxInFlight', maxSpy)
+      inst.start()
+      return wait().then(() => {
+        msgSpy.should.have.callCount(10)
+        maxSpy.should.be.calledOnce
+        for (let i = 0; i < 10; i++) {
+          inst.handledMessage()
+        }
+        return wait()
+      }).then(() => {
+        msgSpy.should.have.callCount(11)
+      })
+    })
+    it('observes the visibilityTimeout setting', () => {
+      inst = new Squiss({ queueUrl: 'foo', visibilityTimeoutSecs: 10 })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'receiveMessage')
+      inst.start()
+      return wait().then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MaxNumberOfMessages: 10,
+          WaitTimeSeconds: 20,
+          VisibilityTimeout: 10
+        })
+      })
+    })
+    it('observes activePollIntervalMs', () => {
+      const abortSpy = sinon.spy()
+      const gmSpy = sinon.spy()
+      inst = new Squiss({ queueUrl: 'foo', activePollIntervalMs: 1000 })
+      inst.sqs = new SQSStub(1, 0)
+      inst.on('aborted', abortSpy)
+      inst.on('gotMessages', gmSpy)
+      inst.start()
+      return wait().then(() => {
+        gmSpy.should.be.calledOnce
+        abortSpy.should.not.be.called
+      })
+    })
+    it('observes idlePollIntervalMs', () => {
+      const abortSpy = sinon.spy()
+      const qeSpy = sinon.spy()
+      inst = new Squiss({ queueUrl: 'foo', idlePollIntervalMs: 1000 })
+      inst.sqs = new SQSStub(1, 0)
+      inst.on('aborted', abortSpy)
+      inst.on('queueEmpty', qeSpy)
+      inst.start()
+      return wait().then(() => {
+        qeSpy.should.be.calledOnce
+        abortSpy.should.not.be.called
       })
     })
   })
@@ -363,8 +436,26 @@ describe('index', () => {
             ReceiveMessageWaitTimeSeconds: '20',
             DelaySeconds: '0',
             MaximumMessageSize: '262144',
+            MessageRetentionPeriod: '345600'
+          }
+        })
+      })
+    })
+    it('configures VisibilityTimeout if specified', () => {
+      inst = new Squiss({ queueName: 'foo', visibilityTimeoutSecs: 15 })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'createQueue')
+      return inst.createQueue().then((queueUrl) => {
+        queueUrl.should.be.a.string
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueName: 'foo',
+          Attributes: {
+            ReceiveMessageWaitTimeSeconds: '20',
+            DelaySeconds: '0',
+            MaximumMessageSize: '262144',
             MessageRetentionPeriod: '345600',
-            VisibilityTimeout: '30'
+            VisibilityTimeout: '15'
           }
         })
       })
@@ -559,6 +650,15 @@ describe('index', () => {
         res.should.have.property('Successful').with.length(13)
         res.should.have.property('Failed').with.length(2)
       })
+    })
+  })
+  describe('Deprecations', () => {
+    it('writes to stderr when visibilityTimeout is used', () => {
+      const stub = sinon.stub(process.stderr, 'write', () => {})
+      inst = new Squiss({ queueUrl: 'foo', visibilityTimeout: 30})
+      stub.should.be.calledOnce
+      stub.restore()
+      inst._opts.should.have.property('visibilityTimeoutSecs').equal(30)
     })
   })
 })

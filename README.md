@@ -43,14 +43,13 @@ Squiss's defaults are great out of the box for most use cases, but you can use t
 - **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or maxInFlight, whichever is lower.
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting activePollIntervalMs to space out calls to SQS. Maximum 20.
 - **opts.unwrapSns** _Default false._ Set to `true` to denote that Squiss should treat each message as though it comes from a queue subscribed to an SNS endpoint, and automatically extract the message from the SNS metadata wrapper.
-- **opts.visibilityTimeout** The SQS VisibilityTimeout to apply to each message. This is the number of seconds that each received message should be made inaccessible to other receive calls, so that a message will not be received more than once before it is processed and deleted. If not specified, the default for the SQS queue will be used.
+- **opts.visibilityTimeoutSecs** _Defaults to queue setting on read, or 30 seconds for createQueue._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
 
-Are you using Squiss to create your queue, as well? Consider setting any of the following options. Note that the defaults are the same as Amazon's own:
+Are you using Squiss to create your queue, as well? Squiss will use `opts.receiveWaitTimeSecs` and `opts.visibilityTimeoutSecs` above in the queue settings, but consider setting any of the following options to configure it further. Note that the defaults are the same as Amazon's own:
 - **opts.delaySecs** _Default 0._ The number of milliseconds by which to delay the delivery of new messages into the queue by default.
 - **opts.maxMessageBytes** _Default 262144 (256KB)._ The maximum size of a single message, in bytes, that the queue can support.
 - **opts.messageRetentionSecs** _Default 345600 (4 days)._ The amount of time for which to retain messages in the queue until they expire, in seconds. Maximum is 1209600 (14 days).
 - **opts.queuePolicy** If specified, will be set as the access policy of the queue when `createQueue` is called. See [the AWS Policy documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) for more information.
-- **opts.visibilityTimeoutSecs** _Default 30._ The amount of time, in seconds, that received messages will be unavailable to other pollers without being deleted.
 
 ### squiss.createQueue()
 Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
