@@ -1,5 +1,5 @@
 # Squiss [![Build Status](https://travis-ci.org/TechnologyAdvice/Squiss.svg?branch=master)](https://travis-ci.org/TechnologyAdvice/Squiss) [![Code Climate](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/gpa.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss) [![Test Coverage](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/coverage.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss/coverage)
-High-volume Amazon SQS Poller and single-queue client for Node.js
+High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
 
 ```javascript
 const poller = new Squiss({
@@ -54,8 +54,8 @@ Are you using Squiss to create your queue, as well? Squiss will use `opts.receiv
 ### squiss.createQueue()
 Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
 
-### squiss.deleteMessage(Message)
-Deletes a message. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
+### squiss.deleteMessage(message|receiptHandle)
+Deletes a message, given either the full Message object sent to the `message` event, or the message's ReceiptHandle string. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
 ### squiss.deleteQueue()
 Deletes the configured queue, returning a promise that resolves on complete. Squiss lets you do this, even though it makes Squiss useless. Squiss is so selfless.

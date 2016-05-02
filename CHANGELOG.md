@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `deleteQueue` method to delete the configured queue
 - `sendMessage` method to send a message to the configured queue
 - `sendMessages` method to send an array of messages of any size (within reason) to the configured queue
+- `deleteMessage` now accepts a ReceiptHandle string in lieu of a Message object, allowing messages to be deleted later without caching the full message itself.
 
 ### Changed
 - Dropped support for Node 0.12. For Node 0.12 support, consider compiling with an ES6 transpiler such as Babel, or using version 0.7.

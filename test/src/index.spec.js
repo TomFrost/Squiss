@@ -8,6 +8,7 @@ const AWS = require('aws-sdk')
 const Squiss = require('src/index')
 const SQSStub = require('test/stubs/SQSStub')
 const delay = require('delay')
+const Message = require('src/Message')
 
 let inst = null
 const origSQS = AWS.SQS
@@ -316,6 +317,18 @@ describe('index', () => {
         spy.should.be.calledTwice
       })
     })
+    it('allows messages to be deleted by ReceiptHandle', () => {
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
+      inst.on('message', (msg) => {
+        inst.deleteMessage(msg.raw.ReceiptHandle)
+      })
+      inst.start()
+      return wait().then(() => {
+        spy.should.be.calledOnce
+      })
+    })
   })
   describe('Failures', () => {
     it('emits delError when a message fails to delete', () => {
@@ -323,12 +336,13 @@ describe('index', () => {
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
       inst.sqs = new SQSStub(1)
       inst.on('delError', spy)
-      inst.deleteMessage({
-        raw: {
+      inst.deleteMessage(new Message({
+        msg: {
           MessageId: 'foo',
-          ReceiptHandle: 'bar'
+          ReceiptHandle: 'bar',
+          Body: 'baz'
         }
-      })
+      }))
       return wait().then(() => {
         spy.should.be.calledOnce
         spy.should.be.calledWith({ Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true })

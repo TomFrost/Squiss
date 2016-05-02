@@ -3,6 +3,9 @@
   "version": "0.7.0",
   "description": "High-volume SQS poller",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=4.2"
+  },
   "scripts": {
     "clean": "rm -rf node_modules build coverage",
     "test": "npm run lint && npm run test-cov && npm run check-cov",
