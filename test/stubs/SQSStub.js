@@ -81,7 +81,7 @@ class SQSStub extends EventEmitter {
         }
         const onNewMessage = () => {
           removeListeners()
-          resolve({Messages: [this.msgs.shift()]})
+          resolve(this.receiveMessage().promise())
         }
         removeListeners = () => {
           clearTimeout(timeout)
