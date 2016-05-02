@@ -666,13 +666,4 @@ describe('index', () => {
       })
     })
   })
-  describe('Deprecations', () => {
-    it('writes to stderr when visibilityTimeout is used', () => {
-      const stub = sinon.stub(process.stderr, 'write', () => {})
-      inst = new Squiss({ queueUrl: 'foo', visibilityTimeout: 30})
-      stub.should.be.calledOnce
-      stub.restore()
-      inst._opts.should.have.property('visibilityTimeoutSecs').equal(30)
-    })
-  })
 })

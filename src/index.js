@@ -111,10 +111,6 @@ class Squiss extends EventEmitter {
     this._delQueue = []
     this._delTimer = null
     this._queueUrl = opts.queueUrl
-    if (opts.visibilityTimeout && !opts.visibilityTimeoutSecs) {
-      this._opts.visibilityTimeoutSecs = opts.visibilityTimeout
-      process.stderr.write('DEPRECATED: Squiss: Use opts.visibilityTimeoutSecs instead of opts.visibilityTimeout.\n')
-    }
     if (!opts.queueUrl && !opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
     }

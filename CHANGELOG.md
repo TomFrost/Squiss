@@ -10,7 +10,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Documentation for the already-existing `sqs` property
 - New option: `activePollIntervalMs`, allowing SQS requests to be spaced out when the queue has messages
 - New option: `idlePollIntervalMs`, allowing SQS requests to be spaced out when the queue is empty
-- New option: `visibilityTimeoutSecs`, an alias for `visibilityTimeout` that stays consistent with the units suffix.
 - `getQueueUrl` method to retrieve the configured queue's URL, even if only the name was provided to the constructor
 - `createQueue` method to create the configured queue
 - `deleteQueue` method to delete the configured queue
@@ -22,7 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Dropped support for Node 0.12. For Node 0.12 support, consider compiling with an ES6 transpiler such as Babel, or using version 0.7.
 - Switched codebase to native ES6, updating to newest TechnologyAdvice style guide
 - `stop()` now aborts any ongoing receiveMessage request by default. It also accepts a `soft` argument (boolean) to soft-stop the poller without the abort functionality.
-- *DEPRECATED:* `opts.visibilityTimeout` is deprecated in favor of `opts.visibilityTimeoutSecs`. Usage of the old version will result in a message printed to stderr. It will be removed in a future version of Squiss.
+- `opts.visibilityTimeout` has been renamed to `opts.visibilityTimeoutSecs` for consistency.
 
 ## [v0.7.0]
 ### Added
