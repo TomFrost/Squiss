@@ -1,6 +1,8 @@
 /*
- * Copyright (c) 2015 TechnologyAdvice
+ * Copyright (c) 2015-2016 TechnologyAdvice
  */
+
+'use strict'
 
 /**
  * The message class is a wrapper for Amazon SQS messages that provides the raw and parsed message body,
@@ -21,18 +23,18 @@ class Message {
    *    delete the message and update inFlight count tracking.
    */
   constructor(opts) {
-    this.raw = opts.msg;
-    this.body = opts.msg.Body;
+    this.raw = opts.msg
+    this.body = opts.msg.Body
     if (opts.unwrapSns) {
-      let unwrapped = JSON.parse(this.body);
-      this.body = unwrapped.Message;
-      this.subject = unwrapped.Subject;
-      this.topicArn = unwrapped.TopicArn;
-      this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1);
+      let unwrapped = JSON.parse(this.body)
+      this.body = unwrapped.Message
+      this.subject = unwrapped.Subject
+      this.topicArn = unwrapped.TopicArn
+      this.topicName = unwrapped.TopicArn.substr(unwrapped.TopicArn.lastIndexOf(':') + 1)
     }
-    this.body = Message._formatMessage(this.body, opts.bodyFormat);
-    this._squiss = opts.squiss;
-    this._handled = false;
+    this.body = Message._formatMessage(this.body, opts.bodyFormat)
+    this._squiss = opts.squiss
+    this._handled = false
   }
 
   /**
@@ -40,8 +42,8 @@ class Message {
    */
   del() {
     if (!this._handled) {
-      this._squiss.deleteMessage(this);
-      this._handled = true;
+      this._squiss.deleteMessage(this)
+      this._handled = true
     }
   }
 
@@ -50,8 +52,8 @@ class Message {
    */
   keep() {
     if (!this._handled) {
-      this._squiss.handledMessage();
-      this._handled = true;
+      this._squiss.handledMessage()
+      this._handled = true
     }
   }
 }
@@ -65,9 +67,9 @@ class Message {
  */
 Message._formatMessage = (msg, format) => {
   switch (format) {
-  case 'json': return JSON.parse(msg);
-  default: return msg;
+  case 'json': return JSON.parse(msg)
+  default: return msg
   }
-};
+}
 
-export default Message;
+module.exports = Message

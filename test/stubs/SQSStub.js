@@ -1,59 +1,152 @@
 /*
- * Copyright (c) 2015 TechnologyAdvice
+ * Copyright (c) 2015-2016 TechnologyAdvice
  */
 
-class SQSStub {
+'use strict'
+
+const EventEmitter = require('events').EventEmitter
+
+class SQSStub extends EventEmitter {
   constructor(msgCount, timeout) {
-    this.msgs = [];
-    this.timeout = timeout === undefined ? 20 : timeout;
-    this.msgCount = msgCount;
+    super()
+    this.msgs = []
+    this.timeout = timeout === undefined ? 20 : timeout
+    this.msgCount = msgCount || 0
     this.config = {
       region: 'us-east-1',
       endpoint: 'http://foo.bar'
-    };
+    }
     for (let i = 0; i < msgCount; i++) {
-      this.msgs.push({
-        MessageId: `id_${i}`,
-        ReceiptHandle: `${i}`,
-        body: `{"num": ${i}}`
-      });
+      this._addMessage(i)
     }
   }
 
-  deleteMessageBatch(params, cb) {
+  createQueue(params) {
+    return this.getQueueUrl(params)
+  }
+
+  deleteMessageBatch(params) {
+    return this._makeReq(() => {
+      const res = {
+        Successful: [],
+        Failed: []
+      }
+      params.Entries.forEach((entry) => {
+        if (parseInt(entry.ReceiptHandle, 10) < this.msgCount) {
+          res.Successful.push({Id: entry.Id})
+        } else {
+          res.Failed.push({
+            Id: entry.Id,
+            SenderFault: true,
+            Code: '404',
+            Message: 'Does not exist'
+          })
+        }
+      })
+      return Promise.resolve(res)
+    })
+  }
+
+  deleteQueue() {
+    return this._makeReq(() => {
+      return Promise.resolve({ ResponseMetadata: { RequestId: 'd2206b43-df52-5161-a8e8-24dc83737962' } })
+    })
+  }
+
+  getQueueUrl(params) {
+    return this._makeReq(() => {
+      return Promise.resolve({
+        QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
+      })
+    })
+  }
+
+  receiveMessage(params) {
+    return this._makeReq(() => {
+      const msgs = this.msgs.splice(0, params.MaxNumberOfMessages)
+      return new Promise((resolve, reject) => {
+        if (msgs.length) return resolve({Messages: msgs})
+        let removeListeners = () => {}
+        const timeout = setTimeout(() => {
+          removeListeners()
+          resolve({})
+        }, this.timeout)
+        const onAbort = () => {
+          removeListeners()
+          const err = new Error('Request aborted by user')
+          err.code = err.name = 'RequestAbortedError'
+          err.retryable = false
+          err.time = new Date()
+          reject(err)
+        }
+        const onNewMessage = () => {
+          removeListeners()
+          resolve(this.receiveMessage().promise())
+        }
+        removeListeners = () => {
+          clearTimeout(timeout)
+          this.removeListener('newMessage', onNewMessage)
+          this.removeListener('abort', onAbort)
+        }
+        this.once('abort', onAbort)
+        this.once('newMessage', onNewMessage)
+        return undefined
+      })
+    })
+  }
+
+  sendMessage(params) {
+    this._addMessage(params.QueueUrl, params.MessageBody)
+    return this._makeReq(() => {
+      return Promise.resolve({
+        MessageId: 'd2206b43-df52-5161-a8e8-24dc83737962',
+        MD5OfMessageAttributes: 'deadbeefdeadbeefdeadbeefdeadbeef',
+        MD5OfMessageBody: 'deadbeefdeadbeefdeadbeefdeadbeef'
+      })
+    })
+  }
+
+  sendMessageBatch(params) {
     const res = {
       Successful: [],
       Failed: []
-    };
-    params.Entries.forEach((entry) => {
-      if (parseInt(entry.ReceiptHandle, 10) < this.msgCount) {
-        res.Successful.push({Id: entry.Id});
+    }
+    params.Entries.forEach((entry, idx) => {
+      if (entry.MessageBody !== 'FAIL') {
+        this._addMessage(entry.Id, entry.MessageBody)
+        res.Successful.push({
+          Id: entry.Id,
+          MessageId: idx.toString(),
+          MD5OfMessageAttributes: 'deadbeefdeadbeefdeadbeefdeadbeef',
+          MD5OfMessageBody: 'deadbeefdeadbeefdeadbeefdeadbeef'
+        })
       } else {
         res.Failed.push({
           Id: entry.Id,
           SenderFault: true,
-          Code: '404',
-          Message: 'Does not exist'
-        });
+          Code: 'Message is empty',
+          Message: ''
+        })
       }
-    });
-    setImmediate(cb.bind(null, null, res));
+    })
+    return this._makeReq(() => Promise.resolve(res))
   }
 
-  getQueueUrl(params, cb) {
-    setImmediate(() => {
-      cb(null, {
-        QueueUrl: `http://localhost:9324/queues/${params.QueueName}`
-      });
-    });
+  _addMessage(id, body) {
+    this.msgs.push({
+      MessageId: `id_${id}`,
+      ReceiptHandle: `${id}`,
+      Body: body || `{"num": ${id}}`
+    })
+    this.emit('newMessage')
   }
 
-  receiveMessage(query, cb) {
-    const msgs = this.msgs.splice(0, query.MaxNumberOfMessages);
-    const done = cb.bind(null, null, msgs.length ? {Messages: msgs} : {});
-    if (msgs.length) setImmediate(done);
-    else setTimeout(done, this.timeout * 1000);
+  _makeReq(func) {
+    return {
+      promise: func,
+      abort: () => { this.emit('abort') }
+    }
   }
 }
 
-export default SQSStub;
+module.exports = SQSStub
