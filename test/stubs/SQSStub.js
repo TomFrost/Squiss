@@ -11,7 +11,7 @@ class SQSStub extends EventEmitter {
     super()
     this.msgs = []
     this.timeout = timeout === undefined ? 20 : timeout
-    this.msgCount = msgCount
+    this.msgCount = msgCount || 0
     this.config = {
       region: 'us-east-1',
       endpoint: 'http://foo.bar'

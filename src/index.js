@@ -275,7 +275,8 @@ class Squiss extends EventEmitter {
    *
    * See http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#sendMessageBatch-property for full details.
    * The "Id" supplied in the response will be the index of the message in the original messages array, in string form.
-   * @param {Array<string|Object>} messages An array of messages to be sent. Objects will be JSON.stringified.
+   * @param {string|Object||Array<string|Object>} messages An array of messages to be sent. Objects will be
+   *    JSON.stringified.
    * @param {number} [delay] The number of seconds by which to delay the delivery of the messages, max 900. If not
    *    specified, the queue default will be used.
    * @param {Object} [attributes] An optional attributes mapping to associate with all messages. For more information,
@@ -296,12 +297,8 @@ class Squiss extends EventEmitter {
     })).then((results) => {
       const merged = {Successful: [], Failed: []}
       results.forEach((res) => {
-        if (res.Successful) {
-          res.Successful.forEach(elem => merged.Successful.push(elem))
-        }
-        if (res.Failed) {
-          res.Failed.forEach(elem => merged.Failed.push(elem))
-        }
+        res.Successful.forEach(elem => merged.Successful.push(elem))
+        res.Failed.forEach(elem => merged.Failed.push(elem))
       })
       return merged
     })
@@ -441,9 +438,6 @@ class Squiss extends EventEmitter {
    * @private
    */
   _sendMessageBatch(messages, delay, attributes, startIndex) {
-    if (!Array.isArray(messages) || messages.length > AWS_MAX_SEND_BATCH) {
-      return Promise.reject(`messages must be an array of ${AWS_MAX_SEND_BATCH} messages at most.`)
-    }
     const start = startIndex || 0
     return this.getQueueUrl().then((queueUrl) => {
       const params = {

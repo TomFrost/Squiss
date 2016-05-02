@@ -5,10 +5,10 @@
   "main": "src/index.js",
   "scripts": {
     "clean": "rm -rf node_modules build coverage",
-    "test": "npm run lint && npm run test-cov",
+    "test": "npm run lint && npm run test-cov && npm run check-cov",
     "mocha": "mocha",
     "test-cov": "istanbul cover _mocha",
-    "check-cov": "istanbul check-coverage --statements 96 --branches 94 --functions 100 --lines 96",
+    "check-cov": "istanbul check-coverage --statements 97 --branches 94 --functions 100 --lines 96",
     "lint": "eslint ./src ./test"
   },
   "repository": {

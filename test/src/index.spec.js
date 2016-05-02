@@ -455,4 +455,110 @@ describe('index', () => {
       })
     })
   })
+  describe('sendMessage', () => {
+    it('sends a string message with no extra arguments', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessage')
+      return inst.sendMessage('bar').then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({ QueueUrl: 'foo', MessageBody: 'bar' })
+      })
+    })
+    it('sends a JSON message with no extra arguments', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessage')
+      return inst.sendMessage({ bar: 'baz' }).then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({ QueueUrl: 'foo', MessageBody: '{"bar":"baz"}' })
+      })
+    })
+    it('sends a message with a delay and attributes', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessage')
+      return inst.sendMessage('bar', 10, { baz: 'fizz' }).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          MessageBody: 'bar',
+          DelaySeconds: 10,
+          MessageAttributes: { baz: 'fizz' }
+        })
+      })
+    })
+  })
+  describe('sendMessages', () => {
+    it('sends a single string message with no extra arguments', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
+      return inst.sendMessages('bar').then((res) => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [
+            { Id: '0', MessageBody: 'bar' }
+          ]
+        })
+        res.should.have.property('Successful').with.length(1)
+        res.Successful[0].should.have.property('Id').equal('0')
+      })
+    })
+    it('sends a single JSON message with no extra arguments', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
+      return inst.sendMessages({bar: 'baz'}).then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [
+            { Id: '0', MessageBody: '{"bar":"baz"}' }
+          ]
+        })
+      })
+    })
+    it('sends a single message with delay and attributes', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
+      return inst.sendMessages('bar', 10, { baz: 'fizz' }).then(() => {
+        spy.should.be.calledOnce
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          Entries: [{
+            Id: '0',
+            MessageBody: 'bar',
+            DelaySeconds: 10,
+            MessageAttributes: { baz: 'fizz' }
+          }]
+        })
+      })
+    })
+    it('sends multiple batches of messages and merges successes', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
+      const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.')
+      return inst.sendMessages(msgs).then((res) => {
+        spy.should.be.calledTwice
+        inst.sqs.msgs.length.should.equal(15)
+        res.should.have.property('Successful').with.length(15)
+        res.should.have.property('Failed').with.length(0)
+      })
+    })
+    it('sends multiple batches of messages and merges failures', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
+      const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.')
+      return inst.sendMessages(msgs).then((res) => {
+        spy.should.be.calledTwice
+        inst.sqs.msgs.length.should.equal(13)
+        res.should.have.property('Successful').with.length(13)
+        res.should.have.property('Failed').with.length(2)
+      })
+    })
+  })
 })
