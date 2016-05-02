@@ -24,7 +24,7 @@ describe('index', () => {
       inst = new Squiss({
         queueUrl: 'foo',
         unwrapSns: true,
-        visibilityTimeout: 10
+        visibilityTimeoutSecs: 10
       })
       should.exist(inst)
     })
