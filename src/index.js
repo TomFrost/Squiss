@@ -44,6 +44,7 @@ class Squiss extends EventEmitter {
   /**
    * Creates a new Squiss object.
    * @param {Object} opts A map of options to configure this instance
+   * @param {Function} [opts.SQS] An SQS constructor function to use rather than the default one provided by SQS
    * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
    *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
    *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
@@ -100,7 +101,7 @@ class Squiss extends EventEmitter {
   constructor(opts) {
     super()
     opts = opts || {}
-    this.sqs = new AWS.SQS(opts.awsConfig)
+    this.sqs = opts.SQS ? new opts.SQS(opts.awsConfig) : new AWS.SQS(opts.awsConfig)
     this._opts = {}
     Object.assign(this._opts, optDefaults, opts)
     this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize, 10)

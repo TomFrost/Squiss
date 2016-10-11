@@ -51,6 +51,16 @@ describe('index', () => {
       inst.sqs.should.be.an.Object
       inst.sqs.config.region.should.equal('us-east-1')
     })
+    it('accepts an sqs function for instantiation if one is provided', () => {
+      const spy = sinon.spy()
+      inst = new Squiss({
+        queueUrl: 'foo',
+        SQS: spy
+      })
+      inst.should.have.property('sqs')
+      inst.sqs.should.be.an.Object
+      spy.should.be.calledOnce
+    })
   })
   describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {
