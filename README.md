@@ -33,6 +33,7 @@ Use the following options to point Squiss at the right queue:
 - **opts.correctQueueUrl** _Default false._ Changes the protocol, host, and port of the queue URL to match the configured SQS endpoint (see opts.awsConfig), applicable only if opts.queueName is specified. This can be useful for testing against a local SQS service, such as ElasticMQ.
 
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
+- **opts.SQS** _Default AWS.SQS_ An SQS constructor function to use rather than the default one provided by AWS.SQS
 - **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
