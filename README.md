@@ -57,6 +57,9 @@ Creates the configured queue! This returns a promise that resolves with the new 
 ### squiss.deleteMessage(message|receiptHandle)
 Deletes a message, given either the full Message object sent to the `message` event, or the message's ReceiptHandle string. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
+### squiss.changeMessageVisibility(message|timeoutInSeconds)
+Changes the visibility timeout of a message.
+
 ### squiss.deleteQueue()
 Deletes the configured queue, returning a promise that resolves on complete. Squiss lets you do this, even though it makes Squiss useless. Squiss is so selfless.
 
@@ -152,6 +155,12 @@ Deletes the message from SQS. Either this or `message.keep()` _must_ be called o
 
 #### message.keep()
 Instructs Squiss that you're not planning to delete a message, but it should no longer be considered "in-flight". Either this or `message.keep()` _must_ be called on each message Quiss delivers in order to maintain an accurate inFlight count.
+
+#### message.release()
+Changes the visibility timeout of the message to 0.
+
+#### message.changeVisibility(timeoutInSeconds)
+Changes the visibility timeout of the message.
 
 #### {Object} message.raw
 The raw, unprocessed SQS response object as delivered from the aws-sdk.

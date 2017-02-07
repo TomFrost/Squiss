@@ -47,6 +47,10 @@ class SQSStub extends EventEmitter {
     })
   }
 
+  changeMessageVisibility() {
+    return this._makeReq(() => Promise.resolve())
+  }
+
   deleteQueue() {
     return this._makeReq(() => {
       return Promise.resolve({ ResponseMetadata: { RequestId: 'd2206b43-df52-5161-a8e8-24dc83737962' } })
