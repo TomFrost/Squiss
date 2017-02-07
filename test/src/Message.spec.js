@@ -88,4 +88,35 @@ describe('Message', () => {
     msg.del()
     calls.should.equal(1)
   })
+  it('calls Squiss.changeMessageVisibility on changeVisibility', (done) => {
+    const timeout = 10
+    const message = new Message({
+      msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
+      bodyFormat: 'json',
+      squiss: {
+        changeMessageVisibility: (msg, timeoutInSeconds) => {
+          msg.should.be.eql(message)
+          timeoutInSeconds.should.be.eql(timeout)
+          done()
+        }
+      }
+    })
+
+    message.changeVisibility(timeout)
+  })
+  it('calls Squiss.changeMessageVisibility with 0 on release', (done) => {
+    const message = new Message({
+      msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
+      bodyFormat: 'json',
+      squiss: {
+        changeMessageVisibility: (msg, timeoutInSeconds) => {
+          msg.should.be.eql(message)
+          timeoutInSeconds.should.be.eql(0)
+          done()
+        }
+      }
+    })
+
+    message.release()
+  })
 })

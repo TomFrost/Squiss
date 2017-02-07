@@ -56,6 +56,20 @@ class Message {
       this._handled = true
     }
   }
+
+  /**
+   * Changes the visibility timeout of the message to 0.
+   */
+  release() {
+    return this.changeVisibility(0)
+  }
+
+  /**
+   * Changes the visibility timeout of the message.
+   */
+  changeVisibility(timeoutInSeconds) {
+    return this._squiss.changeMessageVisibility(this, timeoutInSeconds)
+  }
 }
 
 /**
