@@ -513,6 +513,37 @@ describe('index', () => {
       })
     })
   })
+  describe('changeMessageVisibility', () => {
+    it('calls SQS SDK changeMessageVisibility method', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'changeMessageVisibility')
+      return inst.changeMessageVisibility('bar', 1).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          ReceiptHandle: 'bar',
+          VisibilityTimeout: 1
+        })
+      })
+    })
+    it('calls SQS SDK changeMessageVisibility method', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const spy = sinon.spy(inst.sqs, 'changeMessageVisibility')
+      const msg = new Message({
+        msg: {
+          ReceiptHandle: 'bar'
+        }
+      })
+      return inst.changeMessageVisibility(msg, 1).then(() => {
+        spy.should.be.calledWith({
+          QueueUrl: 'foo',
+          ReceiptHandle: 'bar',
+          VisibilityTimeout: 1
+        })
+      })
+    })
+  })
   describe('deleteQueue', () => {
     it('calls SQS SDK deleteQueue method with queue URL', () => {
       inst = new Squiss({ queueUrl: 'foo' })
