@@ -46,7 +46,7 @@ describe('Message', () => {
       bodyFormat: 'json'
     })
     msg.should.have.property('body')
-    msg.body.should.be.an.Object
+    msg.body.should.be.an('object')
     msg.body.should.have.property('Message').equal('foo')
     msg.body.should.have.property('bar').equal('baz')
   })
@@ -101,7 +101,6 @@ describe('Message', () => {
         }
       }
     })
-
     message.changeVisibility(timeout)
   })
   it('calls Squiss.changeMessageVisibility with 0 on release', (done) => {
@@ -116,7 +115,7 @@ describe('Message', () => {
         }
       }
     })
-
     message.release()
   })
 })
+

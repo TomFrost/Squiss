@@ -48,7 +48,7 @@ describe('index', () => {
         }
       })
       inst.should.have.property('sqs')
-      inst.sqs.should.be.an.Object
+      inst.sqs.should.be.an('object')
       inst.sqs.config.region.should.equal('us-east-1')
     })
     it('accepts an sqs function for instantiation if one is provided', () => {
@@ -58,25 +58,25 @@ describe('index', () => {
         SQS: spy
       })
       inst.should.have.property('sqs')
-      inst.sqs.should.be.an.Object
-      spy.should.be.calledOnce
+      inst.sqs.should.be.an('object')
+      spy.should.be.calledOnce()
     })
   })
   describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {
       inst = new Squiss({ queueUrl: 'foo' })
       inst._getBatch = () => {}
-      inst.running.should.be.false
+      inst.running.should.be.false()
       inst.start()
-      inst.running.should.be.true
+      inst.running.should.be.true()
     })
     it('treats start() as idempotent', () => {
       inst = new Squiss({ queueUrl: 'foo' })
       inst._getBatch = () => {}
-      inst.running.should.be.false
+      inst.running.should.be.false()
       inst.start()
       inst.start()
-      inst.running.should.be.true
+      inst.running.should.be.true()
     })
     it('receives a batch of messages under the max', () => {
       const spy = sinon.spy()
@@ -85,7 +85,7 @@ describe('index', () => {
       inst.on('gotMessages', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith(5)
       })
     })
@@ -99,7 +99,7 @@ describe('index', () => {
       inst.once('queueEmpty', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         batches.should.deep.equal([
           {total: 10, num: 10},
           {total: 5, num: 5}
@@ -119,7 +119,7 @@ describe('index', () => {
       inst.once('queueEmpty', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         batches.should.deep.equal([
           {total: 10, num: 10},
           {total: 5, num: 5}
@@ -135,8 +135,8 @@ describe('index', () => {
       inst.once('queueEmpty', qeSpy)
       inst.start()
       return wait().then(() => {
-        msgSpy.should.not.be.called
-        qeSpy.should.be.calledOnce
+        msgSpy.should.not.be.called()
+        qeSpy.should.be.calledOnce()
       })
     })
     it('emits aborted when stopped with an active message req', () => {
@@ -146,11 +146,11 @@ describe('index', () => {
       inst.on('aborted', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.not.be.called
+        spy.should.not.be.called()
         inst.stop()
         return wait()
       }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
       })
     })
     it('observes the maxInFlight cap', () => {
@@ -207,7 +207,7 @@ describe('index', () => {
       inst.start()
       return wait().then(() => {
         msgSpy.should.have.callCount(10)
-        maxSpy.should.be.calledOnce
+        maxSpy.should.be.calledOnce()
         for (let i = 0; i < 10; i++) {
           inst.handledMessage()
         }
@@ -239,8 +239,8 @@ describe('index', () => {
       inst.on('gotMessages', gmSpy)
       inst.start()
       return wait().then(() => {
-        gmSpy.should.be.calledOnce
-        abortSpy.should.not.be.called
+        gmSpy.should.be.calledOnce()
+        abortSpy.should.not.be.called()
       })
     })
     it('observes idlePollIntervalMs', () => {
@@ -252,8 +252,8 @@ describe('index', () => {
       inst.on('queueEmpty', qeSpy)
       inst.start()
       return wait().then(() => {
-        qeSpy.should.be.calledOnce
-        abortSpy.should.not.be.called
+        qeSpy.should.be.calledOnce()
+        abortSpy.should.not.be.called()
       })
     })
   })
@@ -270,7 +270,7 @@ describe('index', () => {
         inst.deleteMessage(msgs.pop())
         return wait(10)
       }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
       })
     })
     it('deletes messages using Message API', () => {
@@ -285,7 +285,7 @@ describe('index', () => {
         msgs.pop().del()
         return wait(10)
       }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
       })
     })
     it('deletes messages in batches', () => {
@@ -295,7 +295,7 @@ describe('index', () => {
       inst.on('message', (msg) => msg.del())
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledTwice
+        spy.should.be.calledTwice()
       })
     })
     it('deletes immediately with batch size=1', () => {
@@ -320,11 +320,11 @@ describe('index', () => {
         msgs[0].del()
         return wait(15)
       }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         msgs[1].del()
         return wait(15)
       }).then(() => {
-        spy.should.be.calledTwice
+        spy.should.be.calledTwice()
       })
     })
     it('allows messages to be deleted by ReceiptHandle', () => {
@@ -336,7 +336,7 @@ describe('index', () => {
       })
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
       })
     })
   })
@@ -354,7 +354,7 @@ describe('index', () => {
         }
       }))
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({ Code: '404', Id: 'foo', Message: 'Does not exist', SenderFault: true })
       })
     })
@@ -375,7 +375,7 @@ describe('index', () => {
         }
       })
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith(sinon.match.instanceOf(Error))
       })
     })
@@ -392,7 +392,7 @@ describe('index', () => {
       inst.on('error', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith(sinon.match.instanceOf(Error))
       })
     })
@@ -412,8 +412,8 @@ describe('index', () => {
       inst.on('error', errSpy)
       inst.start()
       return wait().then(() => {
-        errSpy.should.be.calledOnce
-        msgSpy.should.be.calledTwice
+        errSpy.should.be.calledOnce()
+        msgSpy.should.be.calledTwice()
       })
     })
     it('emits error when GetQueueURL call fails', () => {
@@ -427,7 +427,7 @@ describe('index', () => {
       inst.on('error', spy)
       inst.start()
       return wait().then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith(sinon.match.instanceOf(Error))
       })
     })
@@ -445,15 +445,15 @@ describe('index', () => {
     it('rejects if Squiss was instantiated without queueName', () => {
       inst = new Squiss({ queueUrl: 'foo' })
       inst.sqs = new SQSStub(1)
-      return inst.createQueue().should.be.rejected
+      return inst.createQueue().should.be.rejected()
     })
     it('calls SQS SDK createQueue method with default attributes', () => {
       inst = new Squiss({ queueName: 'foo' })
       inst.sqs = new SQSStub(1)
       const spy = sinon.spy(inst.sqs, 'createQueue')
       return inst.createQueue().then((queueUrl) => {
-        queueUrl.should.be.a.string
-        spy.should.be.calledOnce
+        queueUrl.should.be.a('string')
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueName: 'foo',
           Attributes: {
@@ -470,8 +470,8 @@ describe('index', () => {
       inst.sqs = new SQSStub(1)
       const spy = sinon.spy(inst.sqs, 'createQueue')
       return inst.createQueue().then((queueUrl) => {
-        queueUrl.should.be.a.string
-        spy.should.be.calledOnce
+        queueUrl.should.be.a('string')
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueName: 'foo',
           Attributes: {
@@ -497,8 +497,8 @@ describe('index', () => {
       inst.sqs = new SQSStub(1)
       const spy = sinon.spy(inst.sqs, 'createQueue')
       return inst.createQueue().then((queueUrl) => {
-        queueUrl.should.be.a.string
-        spy.should.be.calledOnce
+        queueUrl.should.be.a('string')
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueName: 'foo',
           Attributes: {
@@ -550,8 +550,8 @@ describe('index', () => {
       inst.sqs = new SQSStub(1)
       const spy = sinon.spy(inst.sqs, 'deleteQueue')
       return inst.deleteQueue().then((res) => {
-        res.should.be.an.object
-        spy.should.be.calledOnce
+        res.should.be.an('object')
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({ QueueUrl: 'foo' })
       })
     })
@@ -563,7 +563,7 @@ describe('index', () => {
       const spy = sinon.spy(inst.sqs, 'getQueueUrl')
       return inst.getQueueUrl((queueUrl) => {
         queueUrl.should.equal('foo')
-        spy.should.not.be.called
+        spy.should.not.be.called()
       })
     })
     it('asks SQS for the URL if queueUrl was not provided', () => {
@@ -572,7 +572,7 @@ describe('index', () => {
       const spy = sinon.spy(inst.sqs, 'getQueueUrl')
       return inst.getQueueUrl((queueUrl) => {
         queueUrl.indexOf('http').should.equal(0)
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({ QueueName: 'foo' })
       })
     })
@@ -581,10 +581,10 @@ describe('index', () => {
       inst.sqs = new SQSStub(1)
       const spy = sinon.spy(inst.sqs, 'getQueueUrl')
       return inst.getQueueUrl(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         return inst.getQueueUrl()
       }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
       })
     })
     it('includes the account number if provided', () => {
@@ -593,7 +593,7 @@ describe('index', () => {
       const spy = sinon.spy(inst.sqs, 'getQueueUrl')
       return inst.getQueueUrl((queueUrl) => {
         queueUrl.indexOf('http').should.equal(0)
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueName: 'foo',
           QueueOwnerAWSAccountId: '1234'
@@ -607,7 +607,7 @@ describe('index', () => {
       inst.sqs = new SQSStub()
       const spy = sinon.spy(inst.sqs, 'sendMessage')
       return inst.sendMessage('bar').then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({ QueueUrl: 'foo', MessageBody: 'bar' })
       })
     })
@@ -616,7 +616,7 @@ describe('index', () => {
       inst.sqs = new SQSStub()
       const spy = sinon.spy(inst.sqs, 'sendMessage')
       return inst.sendMessage({ bar: 'baz' }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({ QueueUrl: 'foo', MessageBody: '{"bar":"baz"}' })
       })
     })
@@ -640,7 +640,7 @@ describe('index', () => {
       inst.sqs = new SQSStub()
       const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
       return inst.sendMessages('bar').then((res) => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [
@@ -656,7 +656,7 @@ describe('index', () => {
       inst.sqs = new SQSStub()
       const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
       return inst.sendMessages({bar: 'baz'}).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [
@@ -670,7 +670,7 @@ describe('index', () => {
       inst.sqs = new SQSStub()
       const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
       return inst.sendMessages('bar', 10, { baz: 'fizz' }).then(() => {
-        spy.should.be.calledOnce
+        spy.should.be.calledOnce()
         spy.should.be.calledWith({
           QueueUrl: 'foo',
           Entries: [{
@@ -688,7 +688,7 @@ describe('index', () => {
       const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
       const msgs = 'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o'.split('.')
       return inst.sendMessages(msgs).then((res) => {
-        spy.should.be.calledTwice
+        spy.should.be.calledTwice()
         inst.sqs.msgs.length.should.equal(15)
         res.should.have.property('Successful').with.length(15)
         res.should.have.property('Failed').with.length(0)
@@ -700,7 +700,7 @@ describe('index', () => {
       const spy = sinon.spy(inst.sqs, 'sendMessageBatch')
       const msgs = 'a.FAIL.c.d.e.f.g.h.i.j.k.l.m.n.FAIL'.split('.')
       return inst.sendMessages(msgs).then((res) => {
-        spy.should.be.calledTwice
+        spy.should.be.calledTwice()
         inst.sqs.msgs.length.should.equal(13)
         res.should.have.property('Successful').with.length(13)
         res.should.have.property('Failed').with.length(2)

@@ -5,12 +5,16 @@
 'use strict'
 
 const chai = require('chai')
+const chaiAsPromised = require('chai-as-promised')
+const dirtyChai = require('dirty-chai')
 const path = require('path')
 const mod = require('module')
 const sinon = require('sinon')
 const sinonChai = require('sinon-chai')
 
 chai.use(sinonChai)
+chai.use(chaiAsPromised)
+chai.use(dirtyChai)
 
 global.should = chai.should()
 global.sinon = sinon
