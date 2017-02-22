@@ -4,6 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Development]
 Nothing yet!
 
+## [v1.1.0]
+### Added
+- You can now pass an SQS constructor from your own aws-sdk version instead of using the one packaged with Squiss (cwhenderson20)
+- The visibilityTimeout of a received message can now be changed with `squiss.changeMessageVisibility` and `message.changeVisibility` (tothandras)
+- A message can now be returned to the queue and made immediately available with `message.release` (tothandras)
+- Messages can also be returned to the queue with immediate availablility through `squiss.releaseMessage`
+
+### Fixed
+- Deleting messages by handle now works. The Message ID used will be the position of the message in the delete queue, 1-indexed. ([#13](https://github.com/TechnologyAdvice/Squiss/issues/13))
+
+### Changed
+- Tests now use dirty-chai to work around Chai's cardinal sin of allowing nonexistent assertions to be called without error
+- Tests now use chai-as-promised to assert promise results
+
 ## [v1.0.0]
 ### Added
 - The `gotMessages` event, which fires when Squiss retrieves a new batch of messages from SQS
@@ -66,7 +80,8 @@ Nothing yet!
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/1.0.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v1.1.0...HEAD
+[v1.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/1.0.0...v1.1.0
 [v1.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.7.0...1.0.0
 [v0.7.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.6.0...0.7.0
 [v0.6.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.1...0.6.0
