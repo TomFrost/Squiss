@@ -55,11 +55,11 @@ Are you using Squiss to create your queue, as well? Squiss will use `opts.receiv
 ### squiss.createQueue()
 Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
 
-### squiss.deleteMessage(message|receiptHandle)
+### squiss.deleteMessage(Message|receiptHandle)
 Deletes a message, given either the full Message object sent to the `message` event, or the message's ReceiptHandle string. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
-### squiss.changeMessageVisibility(message|timeoutInSeconds)
-Changes the visibility timeout of a message.
+### squiss.changeMessageVisibility(Message|receiptHandle, timeoutInSeconds)
+Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
 
 ### squiss.deleteQueue()
 Deletes the configured queue, returning a promise that resolves on complete. Squiss lets you do this, even though it makes Squiss useless. Squiss is so selfless.
