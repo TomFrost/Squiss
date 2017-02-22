@@ -194,7 +194,7 @@ class Squiss extends EventEmitter {
     if (msg instanceof Message) {
       this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
     } else {
-      this._delQueue.push({ Id: msg, ReceiptHandle: msg })
+      this._delQueue.push({ Id: this._delQueue.length.toString(), ReceiptHandle: msg })
     }
     this.handledMessage()
     if (this._delQueue.length >= this._opts.deleteBatchSize) {
