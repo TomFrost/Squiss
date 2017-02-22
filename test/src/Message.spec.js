@@ -73,18 +73,20 @@ describe('Message', () => {
     })
     msg.keep()
   })
-  it('treats del() and keep() as idempotent', () => {
+  it('treats del(), keep(), and release() as idempotent', () => {
     let calls = 0
     const msg = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
       squiss: {
         deleteMessage: () => { calls += 1 },
-        handledMessage: () => { calls += 10 }
+        handledMessage: () => { calls += 10 },
+        releaseMessage: () => { calls += 100 }
       }
     })
     msg.del()
     msg.keep()
+    msg.release()
     msg.del()
     calls.should.equal(1)
   })
@@ -103,14 +105,13 @@ describe('Message', () => {
     })
     message.changeVisibility(timeout)
   })
-  it('calls Squiss.changeMessageVisibility with 0 on release', (done) => {
+  it('calls Squiss.releaseMessage on release', (done) => {
     const message = new Message({
       msg: getSQSMsg('{"Message":"foo","bar":"baz"}'),
       bodyFormat: 'json',
       squiss: {
-        changeMessageVisibility: (msg, timeoutInSeconds) => {
-          msg.should.be.eql(message)
-          timeoutInSeconds.should.be.eql(0)
+        releaseMessage: (msg) => {
+          msg.should.eql(message)
           done()
         }
       }

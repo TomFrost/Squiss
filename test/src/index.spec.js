@@ -601,6 +601,19 @@ describe('index', () => {
       })
     })
   })
+  describe('releaseMessage', () => {
+    it('marks the message as handled and changes visibility to 0', () => {
+      inst = new Squiss({ queueName: 'foo' })
+      inst.sqs = new SQSStub(1)
+      const handledSpy = sinon.spy(inst, 'handledMessage')
+      const visibilitySpy = sinon.spy(inst, 'changeMessageVisibility')
+      return inst.releaseMessage('foo').then(() => {
+        handledSpy.should.be.calledOnce()
+        visibilitySpy.should.be.calledOnce()
+        visibilitySpy.should.be.calledWith('foo', 0)
+      })
+    })
+  })
   describe('sendMessage', () => {
     it('sends a string message with no extra arguments', () => {
       inst = new Squiss({ queueUrl: 'foo' })

@@ -134,6 +134,27 @@ class Squiss extends EventEmitter {
   }
 
   /**
+   * Changes the visibility timeout of a message.
+   * @param {Message|string} msg The Message object or ReceiptHandle for which to change the VisibilityTimeout.
+   * @param {number} timeoutInSeconds Visibility timeout in seconds.
+   * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
+   */
+  changeMessageVisibility(msg, timeoutInSeconds) {
+    let receiptHandle = msg
+    if (msg instanceof Message) {
+      receiptHandle = msg.raw.ReceiptHandle
+    }
+
+    return this.getQueueUrl().then((queueUrl) =>
+      this.sqs.changeMessageVisibility({
+        QueueUrl: queueUrl,
+        ReceiptHandle: receiptHandle,
+        VisibilityTimeout: timeoutInSeconds
+      }).promise()
+    )
+  }
+
+  /**
    * Creates the configured queue in Amazon SQS and retrieves its queue URL. Note that this method can only be called
    * if Squiss was instantiated with the queueName property.
    * @returns {Promise.<string>} Resolves with the URL of the created queue, rejects with the official AWS SDK's
@@ -193,27 +214,6 @@ class Squiss extends EventEmitter {
   }
 
   /**
-   * Changes the visibility timeout of a message.
-   * @param {Message|string} msg The visibility timeout change is performed on this message.
-   * @param {number} timeoutInSeconds Visibility timeout in seconds.
-   * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
-   */
-  changeMessageVisibility(msg, timeoutInSeconds) {
-    let receiptHandle = msg
-    if (msg instanceof Message) {
-      receiptHandle = msg.raw.ReceiptHandle
-    }
-
-    return this.getQueueUrl().then((queueUrl) =>
-      this.sqs.changeMessageVisibility({
-        QueueUrl: queueUrl,
-        ReceiptHandle: receiptHandle,
-        VisibilityTimeout: timeoutInSeconds
-      }).promise()
-    )
-  }
-
-  /**
    * Deletes the configured queue.
    * @returns {Promise} Resolves on complete. Rejects with the official AWS SDK's error object.
    */
@@ -260,6 +260,20 @@ class Squiss extends EventEmitter {
     if (!this._inFlight) {
       this.emit('drained')
     }
+  }
+
+  /**
+   * Releases a message back into the queue by changing its VisibilityTimeout to 0 and calling
+   * {@link #handledMessage}. Note that if this is used when the poller is running, the message will be
+   * immediately picked up and processed again (by this or any other application instance polling the same
+   * queue).
+   * @param {Message|string} msg The Message object or ReceiptHandle for which to change the VisibilityTimeout.
+   * @returns {Promise} Resolves when the VisibilityTimeout has been changed. Rejects with the official AWS SDK's
+   * error object.
+   */
+  releaseMessage(msg) {
+    this.handledMessage()
+    return this.changeMessageVisibility(msg, 0)
   }
 
   /**
