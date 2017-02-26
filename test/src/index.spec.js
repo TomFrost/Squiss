@@ -61,6 +61,14 @@ describe('index', () => {
       inst.sqs.should.be.an('object')
       spy.should.be.calledOnce()
     })
+    it('accepts an instance of sqs client if one is provided', () => {
+      inst = new Squiss({
+        queueUrl: 'foo',
+        SQS: {}
+      })
+      inst.should.have.property('sqs')
+      inst.sqs.should.be.an('object')
+    })
   })
   describe('Receiving', () => {
     it('reports the appropriate "running" status', () => {

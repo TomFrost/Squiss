@@ -101,7 +101,15 @@ class Squiss extends EventEmitter {
   constructor(opts) {
     super()
     opts = opts || {}
-    this.sqs = opts.SQS ? new opts.SQS(opts.awsConfig) : new AWS.SQS(opts.awsConfig)
+    if (opts.SQS) {
+      if (typeof opts.SQS === 'function') {
+        this.sqs = new opts.SQS(opts.awsConfig)
+      } else {
+        this.sqs = opts.SQS
+      }
+    } else {
+      this.sqs = new AWS.SQS(opts.awsConfig)
+    }
     this._opts = {}
     Object.assign(this._opts, optDefaults, opts)
     this._opts.deleteBatchSize = Math.min(this._opts.deleteBatchSize, 10)
