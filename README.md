@@ -119,7 +119,7 @@ For your convenience, Squiss provides direct access to the AWS SDK's SQS object,
 
 ## Events
 
-### deleted (Message)
+### deleted {Message}
 Emitted when a message is confirmed as being successfully deleted from the queue. The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier, when the delete function is initially called.
 
 ### delError {Object}
