@@ -57,10 +57,10 @@ Are you using Squiss to create your queue, as well? Squiss will use `opts.receiv
 ### squiss.createQueue()
 Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
 
-### squiss.deleteMessage(Message|receiptHandle)
-Deletes a message, given either the full Message object sent to the `message` event, or the message's ReceiptHandle string. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
+### squiss.deleteMessage(Message)
+Deletes a message, given the full Message object sent to the `message` event. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
-### squiss.changeMessageVisibility(Message|receiptHandle, timeoutInSeconds)
+### squiss.changeMessageVisibility(Message, timeoutInSeconds)
 Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
 
 ### squiss.deleteQueue()
@@ -69,8 +69,11 @@ Deletes the configured queue, returning a promise that resolves on complete. Squ
 ### squiss.getQueueUrl()
 Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName. The correctQueueUrl setting applies to this result, if it was set.
 
-### squiss.handledMessage(Message|receiptHandle)
+### squiss.handledMessage(Message)
 Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this.
+
+### squiss.releaseMessage(Message)
+Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as handled internally. You can also call `message.release()` on the message itself to invoke this.
 
 ### squiss.sendMessage(message, delay, attributes)
 Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`. Arguments:
