@@ -9,7 +9,7 @@
  * of its expiration time.
  * @type {number}
  */
-const API_CALL_LEAD_SECS = 5
+const API_CALL_LEAD_MS = 5000
 
 /**
  * Option defaults.
@@ -51,6 +51,8 @@ class TimeoutExtender {
     this._squiss = squiss
     this._squiss.on('handled', msg => this.deleteMessage(msg))
     this._squiss.on('message', msg => this.addMessage(msg))
+    this._visTimeout = this._opts.visibilityTimeoutSecs * 1000
+    this._stopAfter = this._opts.noExtensionsAfterSecs * 1000
   }
 
   /**
@@ -61,7 +63,7 @@ class TimeoutExtender {
     this._addNode({
       message,
       receivedOn: Date.now(),
-      timerOn: Date.now() - this._opts.visibilityTimeoutSecs - API_CALL_LEAD_SECS
+      timerOn: Date.now() - this._visTimeout - API_CALL_LEAD_MS
     })
   }
 
@@ -128,9 +130,9 @@ class TimeoutExtender {
     if (!this._head) return false
     const node = this._head
     this._timer = setTimeout(() => {
-      if (this._opts.noExtensionsAfterSecs) {
-        const age = Date.now() - node.receivedOn + API_CALL_LEAD_SECS
-        if (age >= this._opts.noExtensionsAfterSecs * 1000) this._deleteNode(node)
+      if (this._stopAfter) {
+        const age = Date.now() - node.receivedOn + API_CALL_LEAD_MS
+        if (age >= this._stopAfter) this._deleteNode(node)
         else this._renewNode(node)
       }
     }, Date.now() - node.timerOn)
@@ -145,8 +147,7 @@ class TimeoutExtender {
    * @private
    */
   _renewNode(node) {
-    this._squiss.changeMessageVisibility(node.message,
-      this._opts.visibilityTimeoutSecs + API_CALL_LEAD_SECS)
+    this._squiss.changeMessageVisibility(node.message, this._visTimeout + API_CALL_LEAD_MS)
       .catch(err => {
         this._squiss.emit('error', err)
       })
