@@ -382,12 +382,12 @@ class Squiss extends EventEmitter {
 
   /**
    * Starts the poller, if it's not already running.
+   * @returns {Promise} Resolves when the poller has been started; resolves instantly if the poller is already running
    */
   start() {
-    if (!this._running) {
-      this._running = true
-      this._startPoller()
-    }
+    if (this._running) return Promise.resolve()
+    this._running = true
+    return this._startPoller()
   }
 
   /**
@@ -564,10 +564,11 @@ class Squiss extends EventEmitter {
 
   /**
    * Starts the polling process, regardless of the status of the this._running or this._paused flags.
+   * @returns {Promise} Resolves when the poller has started
    * @private
    */
   _startPoller() {
-    this._initTimeoutExtender()
+    return this._initTimeoutExtender()
       .then(() => this.getQueueUrl())
       .then(queueUrl => this._getBatch(queueUrl))
       .catch(e => this.emit('error', e))

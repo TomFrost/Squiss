@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - BREAKING: The `deleteMessage` method new requires a Message object to be passed to it; not just the receiptHandle
 - BREAKING: The `releaseMessage` method new requires a Message object to be passed to it; not just the receiptHandle
 - BREAKING: The `handledMessage` method now requires a Message object to be passed to it
+- The `start()` function now returns a Promise that resolves when the poller has started
 
 ## [v1.1.0]
 ### Added

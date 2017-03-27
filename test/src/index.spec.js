@@ -751,4 +751,24 @@ describe('index', () => {
       })
     })
   })
+  describe('auto-extensions', () => {
+    it('initializes a TimeoutExtender', () => {
+      inst = new Squiss({ queueUrl: 'foo', autoExtendTimeout: true })
+      inst.sqs = new SQSStub()
+      return inst.start().then(() => {
+        should.exist(inst._timeoutExtender)
+        inst._timeoutExtender.should.not.equal(null)
+        inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(31)
+      })
+    })
+    it('constructs a TimeoutExtender with a custom VisibilityTimeout', () => {
+      inst = new Squiss({ queueUrl: 'foo', autoExtendTimeout: true, visibilityTimeoutSecs: 53 })
+      inst.sqs = new SQSStub()
+      return inst.start().then(() => {
+        should.exist(inst._timeoutExtender)
+        inst._timeoutExtender.should.not.equal(null)
+        inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(53)
+      })
+    })
+  })
 })
