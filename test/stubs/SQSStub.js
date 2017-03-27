@@ -65,6 +65,16 @@ class SQSStub extends EventEmitter {
     })
   }
 
+  getQueueAttributes() {
+    return this._makeReq(() => {
+      return Promise.resolve({
+        Attributes: {
+          VisibilityTimeout: '31'
+        }
+      })
+    })
+  }
+
   receiveMessage(params) {
     return this._makeReq(() => {
       const msgs = this.msgs.splice(0, params.MaxNumberOfMessages)

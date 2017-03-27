@@ -264,7 +264,7 @@ class Squiss extends EventEmitter {
   getQueueVisibilityTimeout() {
     if (this._queueVisibilityTimeout) return Promise.resolve(this._queueVisibilityTimeout)
     return this.getQueueUrl().then(QueueUrl => {
-      return sqs.getQueueAttributes({
+      return this.sqs.getQueueAttributes({
         AttributeNames: [ 'VisibilityTimeout' ],
         QueueUrl
       }).promise()

@@ -327,6 +327,11 @@ describe('index', () => {
         spy.should.be.calledTwice()
       })
     })
+    it('requires a Message object be sent to deleteMessage', () => {
+      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
+      const test = () => inst.deleteMessage('foo')
+      test.should.throw(/Message/)
+    })
   })
   describe('Failures', () => {
     it('emits delError when a message fails to delete', () => {
@@ -587,6 +592,44 @@ describe('index', () => {
           QueueOwnerAWSAccountId: '1234'
         })
       })
+    })
+  })
+  describe('getQueueVisibilityTimeout', () => {
+    it('makes a successful API call', () => {
+      inst = new Squiss({ queueUrl: 'https://foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'getQueueAttributes')
+      return inst.getQueueVisibilityTimeout().then(timeout => {
+        should.exist(timeout)
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+        spy.should.be.calledWith({
+          AttributeNames: [ 'VisibilityTimeout' ],
+          QueueUrl: 'https://foo'
+        })
+      })
+    })
+    it('caches the API call for successive function calls', () => {
+      inst = new Squiss({ queueUrl: 'https://foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'getQueueAttributes')
+      return inst.getQueueVisibilityTimeout().then(timeout => {
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+        return inst.getQueueVisibilityTimeout()
+      }).then(timeout => {
+        should.exist(timeout)
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+      })
+    })
+    it('catches badly formed AWS responses', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      inst.sqs.getQueueAttributes = sinon.stub().returns({
+        promise: () => ({ foo: 'bar' })
+      })
+      return inst.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/)
     })
   })
   describe('releaseMessage', () => {
