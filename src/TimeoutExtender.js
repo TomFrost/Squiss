@@ -60,10 +60,11 @@ class TimeoutExtender {
    * @param {Message} message A Squiss Message object
    */
   addMessage(message) {
+    const now = Date.now()
     this._addNode({
       message,
-      receivedOn: Date.now(),
-      timerOn: Date.now() - this._visTimeout - API_CALL_LEAD_MS
+      receivedOn: now,
+      timerOn: now + this._visTimeout - API_CALL_LEAD_MS
     })
   }
 
@@ -132,10 +133,10 @@ class TimeoutExtender {
     this._timer = setTimeout(() => {
       if (this._stopAfter) {
         const age = Date.now() - node.receivedOn + API_CALL_LEAD_MS
-        if (age >= this._stopAfter) this._deleteNode(node)
-        else this._renewNode(node)
+        if (age >= this._stopAfter) return this._deleteNode(node)
       }
-    }, Date.now() - node.timerOn)
+      return this._renewNode(node)
+    }, node.timerOn - Date.now())
     return true
   }
 
@@ -152,6 +153,7 @@ class TimeoutExtender {
         this._squiss.emit('error', err)
       })
     this._deleteNode(node)
+    node.timerOn = Date.now() + this._visTimeout
     this._addNode(node)
   }
 }
