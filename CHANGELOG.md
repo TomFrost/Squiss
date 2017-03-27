@@ -12,8 +12,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - The `getQueueVisibilityTimeout` function. Intuitively, this gets the queue's VisibilityTimeout. 
 
 ### Changed
-- BREAKING: The `deleteMessage` method new requires a Message object to be passed to it; not just the receiptHandle
-- BREAKING: The `releaseMessage` method new requires a Message object to be passed to it; not just the receiptHandle
+- BREAKING: The `deleteMessage` method now requires a Message object to be passed to it; not just the receiptHandle
+- BREAKING: The `releaseMessage` method now requires a Message object to be passed to it; not just the receiptHandle
 - BREAKING: The `handledMessage` method now requires a Message object to be passed to it
 - The `start()` function now returns a Promise that resolves when the poller has started
 
