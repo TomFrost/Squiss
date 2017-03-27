@@ -2,7 +2,20 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Added
+- The `deleted` event, fired when a message has been confirmed to be successfully deleted
+- The `delQueued` event, fired when a message deletion has been queued up for the next batch
+- The `handled` event, fired when a message has been handled by any means (kept, deleted, or released)
+- The `released` event, fired when a message has been confirmed to be successfully released back for immediate availability
+- The TimeoutExtender feature, which can automatically extend the VisibilityTimeout of any message that has not yet been handled. See README for details!
+- The `autoExtendTimeout` and `noExtensionsAfterSecs` options to support the TimeoutExtender feature
+- The `getQueueVisibilityTimeout` function. Intuitively, this gets the queue's VisibilityTimeout. 
+
+### Changed
+- BREAKING: The `deleteMessage` method now requires a Message object to be passed to it; not just the receiptHandle
+- BREAKING: The `releaseMessage` method now requires a Message object to be passed to it; not just the receiptHandle
+- BREAKING: The `handledMessage` method now requires a Message object to be passed to it
+- The `start()` function now returns a Promise that resolves when the poller has started
 
 ## [v1.1.0]
 ### Added

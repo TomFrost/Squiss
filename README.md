@@ -35,11 +35,13 @@ Use the following options to point Squiss at the right queue:
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
 - **opts.SQS** _Default AWS.SQS_ An SQS constructor function to use rather than the default one provided by AWS.SQS
 - **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
+- **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout 5 seconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
 - **opts.idlePollIntervalMs** _Default 0._ The number of milliseconds to wait before requesting a batch of messages when the queue was empty on the prior request.
 - **opts.maxInFlight** _Default 100._ The number of messages to keep "in-flight", or processing simultaneously. When this cap is reached, no more messages will be polled until currently in-flight messages are marked as deleted or handled. Setting this option to 0 will uncap your inFlight messages, pulling and delivering messages as long as there are messages to pull.
+- **opts.noExtensionsAfterSecs** _Default 0._ If set above 0 and `opts.autoExtendTimeout` is used, Squiss will stop auto-renewing a message's VisibilityTimeout when it reaches this age.
 - **opts.pollRetryMs** _Default 2000._ The number of milliseconds to wait before retrying when Squiss's call to retrieve messages from SQS fails.
 - **opts.receiveBatchSize** _Default 10._ The number of messages to receive at one time. Maximum 10 or maxInFlight, whichever is lower.
 - **opts.receiveWaitTimeSecs** _Default 20._ The number of seconds for which to hold open the SQS call to receive messages, when no message is currently available. It is recommended to set this high, as Squiss will re-open the receiveMessage HTTP request as soon as the last one ends. If this needs to be set low, consider setting activePollIntervalMs to space out calls to SQS. Maximum 20.
@@ -55,8 +57,8 @@ Are you using Squiss to create your queue, as well? Squiss will use `opts.receiv
 ### squiss.createQueue()
 Creates the configured queue! This returns a promise that resolves with the new queue's URL when it's complete. Note that this can only be called if you set `opts.queueName` when instantiating Squiss.
 
-### squiss.deleteMessage(Message|receiptHandle)
-Deletes a message, given either the full Message object sent to the `message` event, or the message's ReceiptHandle string. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
+### squiss.deleteMessage(Message)
+Deletes a message, given the full Message object sent to the `message` event. It's much easier to call `message.del()`, but if you need to do it right from the Squiss instance, this is how. Note that the message probably won't be deleted immediately -- it'll be queued for a batch delete. See the constructor notes for how to configure the specifics of that.
 
 ### squiss.changeMessageVisibility(Message|receiptHandle, timeoutInSeconds)
 Changes the visibility timeout of a message, given either the full Squiss Message object or the receipt handle string.
@@ -67,8 +69,11 @@ Deletes the configured queue, returning a promise that resolves on complete. Squ
 ### squiss.getQueueUrl()
 Returns a Promise that resolves with the URL of the configured queue, even if you only instantiated Squiss with a queueName. The correctQueueUrl setting applies to this result, if it was set.
 
-### squiss.handledMessage()
+### squiss.handledMessage(Message)
 Informs Squiss that you got a message that you're not planning on deleting, so that Squiss can decrement the number of "in-flight" messages. It's good practice to delete every message you process, but this can be useful in case of error. You can also call `message.keep()` on the message itself to invoke this.
+
+### squiss.releaseMessage(Message)
+Releases the given Message object back to the queue by setting its `VisibilityTimeout` to `0` and marking the message as handled internally. You can also call `message.release()` on the message itself to invoke this.
 
 ### squiss.sendMessage(message, delay, attributes)
 Sends an individual message to the configured queue, and returns a promise that resolves with AWS's official message metadata: an object containing `MessageId`, `MD5OfMessageAttributes`, and `MD5OfMessageBody`. Arguments:
@@ -114,9 +119,15 @@ For your convenience, Squiss provides direct access to the AWS SDK's SQS object,
 
 ## Events
 
+### deleted {Message}
+Emitted when a message is confirmed as being successfully deleted from the queue. The `handled` and `delQueued` events will also be fired for deleted messages, but that will come earlier, when the delete function is initially called.
+
 ### delError {Object}
 A `delError` is emitted when AWS reports that any of the deleted messages failed to actually delete. The
 object handed to you in this event is the AWS failure object described in the [SQS deleteMessageBatch documentation](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SQS.html#getQueueUrl-property).
+
+### delQueued {Message}
+Emitted when a message is queued for deletion, even if delete queuing has been turned off.
 
 ### drained
 Emitted when the last in-flight message has been handled, and there are no more messages currently in flight.
@@ -127,8 +138,17 @@ If any of the AWS API calls outrightly fail, `error` is emitted. If you don't ha
 ### gotMessages {number}
 Emitted when Squiss asks SQS for a new batch of messages, and gets some (or one). Supplies the number of retrieved messages.
 
+### handled {Message}
+Emitted when a message is handled by any means: deleting, releasing, or calling `keep()` or `handledMessage()` on it. 
+
 ### queueEmpty
 Emitted when Squiss asks SQS for new messages, and doesn't get any.
+
+### released {Message}
+Emitted after `release()` or `releaseMessage` has been called and the VisibilityTimeout of a message has successfully been changed to `0`. The `handled` event will also be fired for released messages, but that will come earlier, when the release function is initially called.
+ 
+### timeoutExtended {Message}
+Emitted when a message has had its timeout successfully extended by the `autoExtendTimeout` feature.
 
 ### aborted
 Emitted after a hard stop() if a request for new messages was already in progress.

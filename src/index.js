@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 TechnologyAdvice
+ * Copyright (c) 2015-2017 TechnologyAdvice
  */
 
 'use strict'
@@ -8,6 +8,7 @@ const AWS = require('aws-sdk')
 const EventEmitter = require('events').EventEmitter
 const Message = require('./Message')
 const url = require('url')
+const TimeoutExtender = require('./TimeoutExtender')
 
 /**
  * The maximum number of messages that can be sent in an SQS sendMessageBatch request.
@@ -33,7 +34,9 @@ const optDefaults = {
   idlePollIntervalMs: 0,
   delaySecs: 0,
   maxMessageBytes: 262144,
-  messageRetentionSecs: 345600
+  messageRetentionSecs: 345600,
+  autoExtendTimeout: false,
+  noExtensionsAfterSecs: 0
 }
 
 /**
@@ -94,6 +97,12 @@ class Squiss extends EventEmitter {
    * @param {number} [opts.messageRetentionSecs=345600] The amount of time for which to retain messages in the queue
    *    until they expire, in seconds. This is only used when calling {@link #createQueue}. Default is equivalent to
    *    4 days, maximum is 1209600 (14 days).
+   * @param {boolean} [opts.autoExtendTimeout=false] If true, the VisibilityTimeout for all in-flight messages will
+   *    be automatically extended when there are 5 seconds remaining before the VisibilityTimeout would normally
+   *    expire. It will be extended by VisibilityTimeout + 5 seconds. The VisibilityTimeout used will be the one
+   *    specified in opts.visibilityTimeoutSecs, or the queue's configured VisibilityTimeout if that option is not set.
+   * @param {number} [opts.noExtensionsAfterSecs=0] The age, in seconds, at which a message will no longer have its
+   *    VisibilityTimeout automatically extended if opts.autoExtendTimeout is true.
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
@@ -120,9 +129,11 @@ class Squiss extends EventEmitter {
     this._delQueue = []
     this._delTimer = null
     this._queueUrl = opts.queueUrl
+    this._queueVisibilityTimeout = null
     if (!opts.queueUrl && !opts.queueName) {
       throw new Error('Squiss requires either the "queueUrl", or the "queueName".')
     }
+    this._timeoutExtender = null
   }
 
   /**
@@ -196,15 +207,13 @@ class Squiss extends EventEmitter {
   /**
    * Queues the given message for deletion. The message will actually be deleted from SQS per the settings
    * supplied to the constructor.
-   * @param {Message|string} msg The message object to be deleted, or the receipt handle of a message to be deleted
+   * @param {Message} msg The message object to be deleted
    */
   deleteMessage(msg) {
-    if (msg instanceof Message) {
-      this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
-    } else {
-      this._delQueue.push({ Id: this._delQueue.length.toString(), ReceiptHandle: msg })
-    }
-    this.handledMessage()
+    if (!msg.raw) throw new Error('Squiss.deleteMessage requires a Message object')
+    this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
+    this.emit('delQueued', msg)
+    this.handledMessage(msg)
     if (this._delQueue.length >= this._opts.deleteBatchSize) {
       if (this._delTimer) {
         clearTimeout(this._delTimer)
@@ -256,15 +265,39 @@ class Squiss extends EventEmitter {
   }
 
   /**
+   * Retrieves the VisibilityTimeout set on the target queue. When a message is received, it has this many
+   * seconds to be deleted before it will become available to be received again.
+   * @returns {Promise.<number>} The VisibilityTimeout setting of the target queue, in seconds
+   */
+  getQueueVisibilityTimeout() {
+    if (this._queueVisibilityTimeout) return Promise.resolve(this._queueVisibilityTimeout)
+    return this.getQueueUrl().then(QueueUrl => {
+      return this.sqs.getQueueAttributes({
+        AttributeNames: [ 'VisibilityTimeout' ],
+        QueueUrl
+      }).promise()
+    }).then(res => {
+      if (!res.Attributes || !res.Attributes.VisibilityTimeout) {
+        throw new Error('AWS.SQS.GetQueueAttributes call did not return expected shape. Response: ' +
+          JSON.stringify(res))
+      }
+      this._queueVisibilityTimeout = parseInt(res.Attributes.VisibilityTimeout, 10)
+      return this._queueVisibilityTimeout
+    })
+  }
+
+  /**
    * Informs Squiss that a message has been handled. This allows Squiss to decrement the number of in-flight
    * messages without deleting one, which may be necessary in the event of an error.
+   * @param {Message} msg The message to be handled
    */
-  handledMessage() {
+  handledMessage(msg) {
     this._inFlight--
     if (this._paused && this._slotsAvailable()) {
       this._paused = false
       this._startPoller()
     }
+    this.emit('handled', msg)
     if (!this._inFlight) {
       this.emit('drained')
     }
@@ -275,13 +308,16 @@ class Squiss extends EventEmitter {
    * {@link #handledMessage}. Note that if this is used when the poller is running, the message will be
    * immediately picked up and processed again (by this or any other application instance polling the same
    * queue).
-   * @param {Message|string} msg The Message object or ReceiptHandle for which to change the VisibilityTimeout.
+   * @param {Message} msg The Message object for which to change the VisibilityTimeout.
    * @returns {Promise} Resolves when the VisibilityTimeout has been changed. Rejects with the official AWS SDK's
    * error object.
    */
   releaseMessage(msg) {
-    this.handledMessage()
-    return this.changeMessageVisibility(msg, 0)
+    this.handledMessage(msg)
+    return this.changeMessageVisibility(msg, 0).then(res => {
+      this.emit('released', msg)
+      return res
+    })
   }
 
   /**
@@ -354,12 +390,12 @@ class Squiss extends EventEmitter {
 
   /**
    * Starts the poller, if it's not already running.
+   * @returns {Promise} Resolves when the poller has been started; resolves instantly if the poller is already running
    */
   start() {
-    if (!this._running) {
-      this._running = true
-      this._startPoller()
-    }
+    if (this._running) return Promise.resolve()
+    this._running = true
+    return this._startPoller()
   }
 
   /**
@@ -392,7 +428,10 @@ class Squiss extends EventEmitter {
       }).promise()
     }).then((data) => {
       if (data.Failed && data.Failed.length) {
-        data.Failed.forEach((fail) => this.emit('delError', fail))
+        data.Failed.forEach(fail => this.emit('delError', fail))
+      }
+      if (data.Successful && data.Successful.length) {
+        data.Successful.forEach(success => this.emit('deleted', success.Id))
       }
     }).catch((err) => {
       this.emit('error', err)
@@ -469,6 +508,25 @@ class Squiss extends EventEmitter {
   }
 
   /**
+   * Initializes the TimeoutExtender and associates it with this Squiss instance, if and only if the options passed
+   * to the constructor dictate that a TimeoutExtender is required.
+   * @returns {Promise} Resolves when the TimeoutExtender has been initialized
+   * @private
+   */
+  _initTimeoutExtender() {
+    if (!this._opts.autoExtendTimeout || this._timeoutExtender) return Promise.resolve()
+    return Promise.resolve().then(() => {
+      if (this._opts.visibilityTimeoutSecs) return this._opts.visibilityTimeoutSecs
+      return this.getQueueVisibilityTimeout()
+    }).then(visibilityTimeoutSecs => {
+      this._timeoutExtender = new TimeoutExtender(this, {
+        visibilityTimeoutSecs,
+        noExtensionsAfterSecs: this._opts.noExtensionsAfterSecs
+      })
+    })
+  }
+
+  /**
    * Sends a batch of a maximum of 10 messages to Amazon SQS. The Id generated for each will be the stringified
    * index of each message in the array, plus the startIndex
    * @param {Array<string|Object>} messages An array of messages to be sent. Objects will be JSON.stringified.
@@ -514,10 +572,12 @@ class Squiss extends EventEmitter {
 
   /**
    * Starts the polling process, regardless of the status of the this._running or this._paused flags.
+   * @returns {Promise} Resolves when the poller has started
    * @private
    */
   _startPoller() {
-    this.getQueueUrl()
+    return this._initTimeoutExtender()
+      .then(() => this.getQueueUrl())
       .then(queueUrl => this._getBatch(queueUrl))
       .catch(e => this.emit('error', e))
   }

@@ -335,17 +335,10 @@ describe('index', () => {
         spy.should.be.calledTwice()
       })
     })
-    it('allows messages to be deleted by ReceiptHandle', () => {
+    it('requires a Message object be sent to deleteMessage', () => {
       inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
-      inst.sqs = new SQSStub(1)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
-      inst.on('message', (msg) => {
-        inst.deleteMessage(msg.raw.ReceiptHandle)
-      })
-      inst.start()
-      return wait().then(() => {
-        spy.should.be.calledOnce()
-      })
+      const test = () => inst.deleteMessage('foo')
+      test.should.throw(/Message/)
     })
   })
   describe('Failures', () => {
@@ -609,6 +602,44 @@ describe('index', () => {
       })
     })
   })
+  describe('getQueueVisibilityTimeout', () => {
+    it('makes a successful API call', () => {
+      inst = new Squiss({ queueUrl: 'https://foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'getQueueAttributes')
+      return inst.getQueueVisibilityTimeout().then(timeout => {
+        should.exist(timeout)
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+        spy.should.be.calledWith({
+          AttributeNames: [ 'VisibilityTimeout' ],
+          QueueUrl: 'https://foo'
+        })
+      })
+    })
+    it('caches the API call for successive function calls', () => {
+      inst = new Squiss({ queueUrl: 'https://foo' })
+      inst.sqs = new SQSStub()
+      const spy = sinon.spy(inst.sqs, 'getQueueAttributes')
+      return inst.getQueueVisibilityTimeout().then(timeout => {
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+        return inst.getQueueVisibilityTimeout()
+      }).then(timeout => {
+        should.exist(timeout)
+        timeout.should.equal(31)
+        spy.should.be.calledOnce()
+      })
+    })
+    it('catches badly formed AWS responses', () => {
+      inst = new Squiss({ queueUrl: 'foo' })
+      inst.sqs = new SQSStub()
+      inst.sqs.getQueueAttributes = sinon.stub().returns({
+        promise: () => ({ foo: 'bar' })
+      })
+      return inst.getQueueVisibilityTimeout().should.be.rejectedWith(/foo/)
+    })
+  })
   describe('releaseMessage', () => {
     it('marks the message as handled and changes visibility to 0', () => {
       inst = new Squiss({ queueName: 'foo' })
@@ -725,6 +756,26 @@ describe('index', () => {
         inst.sqs.msgs.length.should.equal(13)
         res.should.have.property('Successful').with.length(13)
         res.should.have.property('Failed').with.length(2)
+      })
+    })
+  })
+  describe('auto-extensions', () => {
+    it('initializes a TimeoutExtender', () => {
+      inst = new Squiss({ queueUrl: 'foo', autoExtendTimeout: true })
+      inst.sqs = new SQSStub()
+      return inst.start().then(() => {
+        should.exist(inst._timeoutExtender)
+        inst._timeoutExtender.should.not.equal(null)
+        inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(31)
+      })
+    })
+    it('constructs a TimeoutExtender with a custom VisibilityTimeout', () => {
+      inst = new Squiss({ queueUrl: 'foo', autoExtendTimeout: true, visibilityTimeoutSecs: 53 })
+      inst.sqs = new SQSStub()
+      return inst.start().then(() => {
+        should.exist(inst._timeoutExtender)
+        inst._timeoutExtender.should.not.equal(null)
+        inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(53)
       })
     })
   })
