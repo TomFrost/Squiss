@@ -102,7 +102,7 @@ class Squiss extends EventEmitter {
    *    expire. It will be extended by VisibilityTimeout + 5 seconds. The VisibilityTimeout used will be the one
    *    specified in opts.visibilityTimeoutSecs, or the queue's configured VisibilityTimeout if that option is not set.
    * @param {number} [opts.noExtensionsAfterSecs=0] The age, in seconds, at which a message will no longer have its
-   *    VisibilityTimeout automatically extended if opts.visibilityTimeoutSets is true.
+   *    VisibilityTimeout automatically extended if opts.autoExtendTimeout is true.
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
