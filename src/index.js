@@ -47,7 +47,8 @@ class Squiss extends EventEmitter {
   /**
    * Creates a new Squiss object.
    * @param {Object} opts A map of options to configure this instance
-   * @param {Function} [opts.SQS] An SQS constructor function to use rather than the default one provided by SQS
+   * @param {Function} [opts.SQS] An instance of the official SQS Client, or an SQS constructor function to use
+   *    rather than the default one provided by AWS.SQS
    * @param {Object} [opts.awsConfig] An object mapping to pass to the SQS constructor, configuring the
    *    aws-sdk library. This is commonly used to set the AWS region, or the user credentials. See
    *    http://docs.aws.amazon.com/AWSJavaScriptSDK/guide/node-configuring.html
@@ -111,11 +112,8 @@ class Squiss extends EventEmitter {
     super()
     opts = opts || {}
     if (opts.SQS) {
-      if (typeof opts.SQS === 'function') {
-        this.sqs = new opts.SQS(opts.awsConfig)
-      } else {
-        this.sqs = opts.SQS
-      }
+      if (typeof opts.SQS === 'function') this.sqs = new opts.SQS(opts.awsConfig)
+      else this.sqs = opts.SQS
     } else {
       this.sqs = new AWS.SQS(opts.awsConfig)
     }
@@ -163,7 +161,6 @@ class Squiss extends EventEmitter {
     if (msg instanceof Message) {
       receiptHandle = msg.raw.ReceiptHandle
     }
-
     return this.getQueueUrl().then((queueUrl) =>
       this.sqs.changeMessageVisibility({
         QueueUrl: queueUrl,

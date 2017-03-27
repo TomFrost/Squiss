@@ -9,7 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - The `released` event, fired when a message has been confirmed to be successfully released back for immediate availability
 - The TimeoutExtender feature, which can automatically extend the VisibilityTimeout of any message that has not yet been handled. See README for details!
 - The `autoExtendTimeout` and `noExtensionsAfterSecs` options to support the TimeoutExtender feature
-- The `getQueueVisibilityTimeout` function. Intuitively, this gets the queue's VisibilityTimeout. 
+- The `getQueueVisibilityTimeout` function. Intuitively, this gets the queue's VisibilityTimeout.
+- `opts.SQS` now supports an instance of the SQS client class in addition to a constructor (cwhenderson20)
 
 ### Changed
 - BREAKING: The `deleteMessage` method now requires a Message object to be passed to it; not just the receiptHandle
