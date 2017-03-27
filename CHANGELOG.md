@@ -2,6 +2,9 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
+Nothing yet!
+
+## [v2.0.0]
 ### Added
 - The `deleted` event, fired when a message has been confirmed to be successfully deleted
 - The `delQueued` event, fired when a message deletion has been queued up for the next batch
@@ -94,7 +97,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v1.1.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.0...HEAD
+[v2.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.1.0...v2.0.0
 [v1.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v0.7.0...v1.0.0
 [v0.7.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.6.0...v0.7.0
