@@ -202,7 +202,7 @@ class Squiss extends EventEmitter {
    * @param {Message} msg The message object to be deleted
    */
   deleteMessage(msg) {
-    if (!(msg instanceof Message)) throw new Error('Squiss.deleteMessage requires a Message object')
+    if (!msg.raw) throw new Error('Squiss.deleteMessage requires a Message object')
     this._delQueue.push({ Id: msg.raw.MessageId, ReceiptHandle: msg.raw.ReceiptHandle })
     this.emit('delQueued', msg)
     this.handledMessage(msg)

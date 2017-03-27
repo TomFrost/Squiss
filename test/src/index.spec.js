@@ -327,18 +327,6 @@ describe('index', () => {
         spy.should.be.calledTwice()
       })
     })
-    it('allows messages to be deleted by ReceiptHandle', () => {
-      inst = new Squiss({ queueUrl: 'foo', deleteBatchSize: 1 })
-      inst.sqs = new SQSStub(1)
-      const spy = sinon.spy(inst.sqs, 'deleteMessageBatch')
-      inst.on('message', (msg) => {
-        inst.deleteMessage(msg.raw.ReceiptHandle)
-      })
-      inst.start()
-      return wait().then(() => {
-        spy.should.be.calledOnce()
-      })
-    })
   })
   describe('Failures', () => {
     it('emits delError when a message fails to delete', () => {
