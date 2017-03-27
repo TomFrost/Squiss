@@ -87,6 +87,17 @@ describe('TimeoutExtender', () => {
     clock.tick(6000)
     spy.should.be.calledOnce()
   })
+  it('emits "timeoutExtended" on renewal', done => {
+    clock = sinon.useFakeTimers(100000)
+    const squiss = new SquissStub()
+    squiss.on('timeoutExtended', msg => {
+      msg.should.equal(fooMsg)
+      done()
+    })
+    inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
+    inst.addMessage(fooMsg)
+    clock.tick(6000)
+  })
   it('renews two messages approaching expiry', () => {
     clock = sinon.useFakeTimers(100000)
     const squiss = new SquissStub()

@@ -149,6 +149,7 @@ class TimeoutExtender {
    */
   _renewNode(node) {
     this._squiss.changeMessageVisibility(node.message, this._visTimeout + API_CALL_LEAD_MS)
+      .then(() => this._squiss.emit('timeoutExtended', node.message))
       .catch(err => {
         this._squiss.emit('error', err)
       })

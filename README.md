@@ -145,7 +145,10 @@ Emitted when a message is handled by any means: deleting, releasing, or calling 
 Emitted when Squiss asks SQS for new messages, and doesn't get any.
 
 ### released {Message}
-Emitted after `release()` or `releaseMessage` has been called and the VisibilityTimeout of a message has successfully been changed to `0`. The `handled` event will also be fired for released messages, but that will come earlier, when the release function is initially called. 
+Emitted after `release()` or `releaseMessage` has been called and the VisibilityTimeout of a message has successfully been changed to `0`. The `handled` event will also be fired for released messages, but that will come earlier, when the release function is initially called.
+ 
+### timeoutExtended {Message}
+Emitted when a message has had its timeout successfully extended by the `autoExtendTimeout` feature.
 
 ### aborted
 Emitted after a hard stop() if a request for new messages was already in progress.
