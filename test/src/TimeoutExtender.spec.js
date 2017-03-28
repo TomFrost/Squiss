@@ -134,4 +134,13 @@ describe('TimeoutExtender', () => {
     inst.addMessage(fooMsg)
     clock.tick(6000)
   })
+  it('calls changeMessageVisibility with the appropriate timeout value', () => {
+    clock = sinon.useFakeTimers(100000)
+    const squiss = new SquissStub()
+    const spy = sinon.spy(squiss, 'changeMessageVisibility')
+    inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
+    inst.addMessage(fooMsg)
+    clock.tick(6000)
+    spy.should.be.calledWith(fooMsg, 15)
+  })
 })
