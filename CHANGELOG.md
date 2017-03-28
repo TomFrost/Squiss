@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Development]
 Nothing yet!
 
+## [v2.0.1]
+### Fixed
+- TimeoutExtender now passes seconds to `changeMessageVisibility` instead of milliseconds. AWS didn't like that.
+
 ## [v2.0.0]
 ### Added
 - The `deleted` event, fired when a message has been confirmed to be successfully deleted
