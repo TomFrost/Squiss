@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Development]
 Nothing yet!
 
+## [v2.0.2]
+### Fixed
+- Message now passes an instance of itself to the handled call, fixing cases where the message would not be emitted with the "handled" event.
+
 ## [v2.0.1]
 ### Fixed
 - TimeoutExtender now passes seconds to `changeMessageVisibility` instead of milliseconds. AWS didn't like that.
@@ -101,7 +105,9 @@ Nothing yet!
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.2...HEAD
+[v2.0.2]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.1...v2.0.2
+[v2.0.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.1.0...v2.0.0
 [v1.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v0.7.0...v1.0.0
