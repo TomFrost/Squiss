@@ -52,7 +52,7 @@ class Message {
    */
   keep() {
     if (!this._handled) {
-      this._squiss.handledMessage()
+      this._squiss.handledMessage(this)
       this._handled = true
     }
   }
