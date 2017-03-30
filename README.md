@@ -153,6 +153,9 @@ Emitted when a message has had its timeout successfully extended by the `autoExt
 ### aborted
 Emitted after a hard stop() if a request for new messages was already in progress.
 
+### autoExtendFail {message: Message, error: Error}
+Emitted if automatic VisibilityTimeout extensions are enabled, and Squiss attempts to extend a message that has either been deleted or otherwise expired.
+
 ### maxInFlight
 Emitted when Squiss has hit the maxInFlight cap. At this point, Squiss won't retrieve any more messages until at least `opts.receiveBatchSize` in-flight messages have been deleted.
 

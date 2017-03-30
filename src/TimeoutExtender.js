@@ -151,7 +151,12 @@ class TimeoutExtender {
     this._squiss.changeMessageVisibility(node.message, Math.floor((this._visTimeout + API_CALL_LEAD_MS) / 1000))
       .then(() => this._squiss.emit('timeoutExtended', node.message))
       .catch(err => {
-        this._squiss.emit('error', err)
+        if (err.message.match(/Message does not exist or is not available/)) {
+          this._deleteNode(node)
+          this._squiss.emit('autoExtendFail', { message: node.message, error: err })
+        } else {
+          this._squiss.emit('error', err)
+        }
       })
     this._deleteNode(node)
     node.timerOn = Date.now() + this._visTimeout

@@ -2,7 +2,11 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+### Added
+- The `autoExtendFail` event, fired when the TimeoutExtender fails to change the VisibilityTimeout of a message due to the message no longer existing or being expired. This event may encompass more errors in the future.
+
+### Fixed
+- TimeoutExtender no longer continually tries to extend messages that SQS has reported as previously deleted or expired. Instead, messages are removed from the list on this error, and a `autoExtendFail` event is emitted.
 
 ## [v2.0.2]
 ### Fixed
