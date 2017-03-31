@@ -14,6 +14,12 @@ let clock = null
 const fooMsg = new Message({ msg: { MessageId: 'foo', Body: 'foo' } })
 const barMsg = new Message({ msg: { MessageId: 'bar', Body: 'bar' } })
 const bazMsg = new Message({ msg: { MessageId: 'baz', Body: 'baz' } })
+const notExistError = new Error('Value AQEB5iHoiWO4nU0Tx3mGzJLdXNQ+fg3nadtYYTDoWMhuOiUOP7sjZTgC64MlRbSwFneA5+' +
+  'C+fS5DGRbiEC1VAF0KTMEBrgEOVAQpwRQo8yfie8ltzf+0LLasaHrTB1IFDIvQ0+wsrM4PxXiDJD1tzQ2kw89ijfP4W4tAy6Dqvd5mhlAn' +
+  'V+Gvq5IhSRrlzUx9ZOSZyoYPfWN7KwJVKrCWYIyGN3nkGaKwTc+HlJ3jABjTEWHULD9lZjWfBXMWY9bvIVvYuyg2BkSjqb/WKdM6eSPjIA' +
+  'UxPIeI6HlkCccfAr9i2GeRmUJp+29g6l0kw3WKJ8msybx1kRzZ11E9++pbhay62SAZKeHZ/E+KuV1jwCJ9nFYPPPk/SwsgUSO1Q4ULYc/0' +
+  ' for parameter ReceiptHandle is invalid. Reason: Message does not exist or is not available for visibility ' +
+  'timeout change.')
 
 describe('TimeoutExtender', () => {
   afterEach(() => {
@@ -142,5 +148,24 @@ describe('TimeoutExtender', () => {
     inst.addMessage(fooMsg)
     clock.tick(6000)
     spy.should.be.calledWith(fooMsg, 15)
+  })
+  it('emits autoExtendFail when an extended message has already been deleted', done => {
+    clock = sinon.useFakeTimers(100000)
+    const squiss = new SquissStub()
+    squiss.on('autoExtendFail', obj => {
+      try {
+        obj.should.deep.equal({
+          message: fooMsg,
+          error: notExistError
+        })
+      } catch (e) {
+        return done(e)
+      }
+      return done()
+    })
+    squiss.changeMessageVisibility = sinon.stub().returns(Promise.reject(notExistError))
+    inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
+    inst.addMessage(fooMsg)
+    clock.tick(6000)
   })
 })
