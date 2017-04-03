@@ -12,7 +12,7 @@
 const API_CALL_LEAD_MS = 5000
 
 /**
- * The maximum age, in mulliseconds, that a message can reach before AWS will no longer accept VisibilityTimeout
+ * The maximum age, in milliseconds, that a message can reach before AWS will no longer accept VisibilityTimeout
  * extensions.
  * @type {number}
  */
@@ -24,7 +24,7 @@ const MAX_MESSAGE_AGE_MS = 43200000
  */
 const optDefaults = {
   visibilityTimeoutSecs: 30,
-  noExtensionsAfterSecs: MAX_MESSAGE_AGE_MS
+  noExtensionsAfterSecs: MAX_MESSAGE_AGE_MS / 1000
 }
 
 /**
