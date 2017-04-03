@@ -168,4 +168,14 @@ describe('TimeoutExtender', () => {
     inst.addMessage(fooMsg)
     clock.tick(6000)
   })
+  it('extends only to the message lifetime maximum', () => {
+    clock = sinon.useFakeTimers(43200000)
+    const squiss = new SquissStub()
+    const spy = sinon.spy(squiss, 'changeMessageVisibility')
+    inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
+    inst.addMessage(fooMsg)
+    inst._head.receivedOn = 20000
+    clock.tick(6000)
+    spy.should.be.calledWith(fooMsg, 10)
+  })
 })
