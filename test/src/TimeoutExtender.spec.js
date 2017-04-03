@@ -147,7 +147,7 @@ describe('TimeoutExtender', () => {
     inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
     inst.addMessage(fooMsg)
     clock.tick(6000)
-    spy.should.be.calledWith(fooMsg, 15)
+    spy.should.be.calledWith(fooMsg, 10)
   })
   it('emits autoExtendFail when an extended message has already been deleted', done => {
     clock = sinon.useFakeTimers(100000)
@@ -167,5 +167,15 @@ describe('TimeoutExtender', () => {
     inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
     inst.addMessage(fooMsg)
     clock.tick(6000)
+  })
+  it('extends only to the message lifetime maximum', () => {
+    clock = sinon.useFakeTimers(43200000)
+    const squiss = new SquissStub()
+    const spy = sinon.spy(squiss, 'changeMessageVisibility')
+    inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
+    inst.addMessage(fooMsg)
+    inst._head.receivedOn = 20000
+    clock.tick(6000)
+    spy.should.be.calledWith(fooMsg, 10)
   })
 })

@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - TimeoutExtender no longer continually tries to extend messages that SQS has reported as previously deleted or expired. Instead, messages are removed from the list on this error, and a `autoExtendFail` event is emitted.
+- TimeoutExtender no longer tries to extend the timeout beyond AWS's maximum message lifetime.
 
 ## [v2.0.2]
 ### Fixed
