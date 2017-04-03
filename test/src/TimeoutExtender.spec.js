@@ -147,7 +147,7 @@ describe('TimeoutExtender', () => {
     inst = new TimeoutExtender(squiss, { visibilityTimeoutSecs: 10 })
     inst.addMessage(fooMsg)
     clock.tick(6000)
-    spy.should.be.calledWith(fooMsg, 15)
+    spy.should.be.calledWith(fooMsg, 10)
   })
   it('emits autoExtendFail when an extended message has already been deleted', done => {
     clock = sinon.useFakeTimers(100000)
