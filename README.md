@@ -190,7 +190,7 @@ Changes the visibility timeout of the message.
 The raw, unprocessed SQS response object as delivered from the aws-sdk.
 
 ## Versions
-Squiss supports Node 4 LTE and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
+Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
 
 ## License
 Squiss is Copyright (c) 2015 TechnologyAdvice, released under the ultra-permissive ISC license. See LICENSE.txt for details.
