@@ -170,7 +170,7 @@ class TimeoutExtender {
    */
   _renewNode(node) {
     const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node))
-    const extendBySecs = Math.ceil(extendByMs / 1000)
+    const extendBySecs = Math.floor(extendByMs / 1000)
     this._squiss.changeMessageVisibility(node.message, extendBySecs)
       .then(() => this._squiss.emit('timeoutExtended', node.message))
       .catch(err => {
