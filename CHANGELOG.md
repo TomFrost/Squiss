@@ -7,7 +7,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - A possible scenario where someone could set the visibilityTimeoutSecs ultra low and cause timers to be set for negative milliseconds
-- A scenario where, over the lifetime of a message that gets repeatedly extended by the autoExtendTimeout feature, the call to extend the message's VisibilityTimeout could be made after the message has already expired. 
 
 ## [v2.1.1]
 ### Fixed
