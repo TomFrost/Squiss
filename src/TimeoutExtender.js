@@ -65,7 +65,7 @@ class TimeoutExtender {
     this._squiss.on('message', msg => this.addMessage(msg))
     this._visTimeout = this._opts.visibilityTimeoutSecs * 1000
     this._stopAfter = Math.min(this._opts.noExtensionsAfterSecs * 1000, MAX_MESSAGE_AGE_MS)
-    this._apiLeadMs = Math.min(this._opts.advancedCallMs, this._visTimeout * 1000)
+    this._apiLeadMs = Math.min(this._opts.advancedCallMs, this._visTimeout)
   }
 
   /**
