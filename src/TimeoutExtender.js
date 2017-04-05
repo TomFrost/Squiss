@@ -170,7 +170,8 @@ class TimeoutExtender {
    */
   _renewNode(node) {
     const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node))
-    this._squiss.changeMessageVisibility(node.message, Math.floor(extendByMs / 1000))
+    const extendBySecs = Math.ceil(extendByMs / 1000)
+    this._squiss.changeMessageVisibility(node.message, extendBySecs)
       .then(() => this._squiss.emit('timeoutExtended', node.message))
       .catch(err => {
         if (err.message.match(/Message does not exist or is not available/)) {
@@ -181,7 +182,7 @@ class TimeoutExtender {
         }
       })
     this._deleteNode(node)
-    node.timerOn = Date.now() + extendByMs
+    node.timerOn = Date.now() + extendBySecs * 1000
     this._addNode(node)
   }
 }
