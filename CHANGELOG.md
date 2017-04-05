@@ -2,7 +2,8 @@
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Development]
-Nothing yet!
+## Added
+- The `advancedCallMs` option to tweak how far in advance of a message's VisibilityTimeout that a ChangeVisibilityTimeout call will be made
 
 ## [v2.1.1]
 ### Fixed

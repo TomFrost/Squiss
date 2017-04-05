@@ -35,7 +35,8 @@ Use the following options to point Squiss at the right queue:
 Squiss's defaults are great out of the box for most use cases, but you can use the below to fine-tune your Squiss experience:
 - **opts.SQS** _Default AWS.SQS_ An instance of the official SQS Client, or an SQS constructor function to use rather than the default one provided by AWS.SQS
 - **opts.activePollIntervalMs** _Default 0._ The number of milliseconds to wait between requesting batches of messages when the queue is not empty, and the maxInFlight cap has not been hit. For most use cases, it's better to leave this at 0 and let Squiss manage the active polling frequency according to maxInFlight.
-- **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout 5 seconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
+- **opts.advancedCallMs** _Default 5000._ If `opts.autoExtendTimeout` is used, this is the number of milliseconds that Squiss will make the call to extend the VisibilityTimeout of the message before the message is set to expire.
+- **opts.autoExtendTimeout** _Default false._ If true, Squiss will automatically extend each message's VisibilityTimeout in the SQS queue until it's handled (by keeping, deleting, or releasing it). It will place the API call to extend the timeout `opts.advancedCallMs` milliseconds in advance of the expiration, and will extend it by the number of seconds specified in `opts.visibilityTimeoutSecs`. If that's not specified, the VisibilityTimeout setting on the queue itself will be used.
 - **opts.bodyFormat** _Default "plain"._ The format of the incoming message. Set to "json" to automatically call `JSON.parse()` on each incoming message.
 - **opts.deleteBatchSize** _Default 10._ The number of messages to delete at one time. Squiss will trigger a batch delete when this limit is reached, or when deleteWaitMs milliseconds have passed since the first queued delete in the batch; whichever comes first. Set to 1 to make all deletes immediate. Maximum 10.
 - **opts.deleteWaitMs** _Default 2000._ The number of milliseconds to wait after the first queued message deletion before deleting the message(s) from SQS.
@@ -193,4 +194,4 @@ The raw, unprocessed SQS response object as delivered from the aws-sdk.
 Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
 
 ## License
-Squiss is Copyright (c) 2015 TechnologyAdvice, released under the ultra-permissive ISC license. See LICENSE.txt for details.
+Squiss is Copyright (c) 2015-2017 TechnologyAdvice, released under the ultra-permissive ISC license. See LICENSE.txt for details.
