@@ -162,7 +162,7 @@ class TimeoutExtender {
   }
 
   /**
-   * Extends the VisbilityTimeout of the message contained in the provided wrapper node,
+   * Extends the VisibilityTimeout of the message contained in the provided wrapper node,
    * and moves the node to the tail of the linked list.
    * @param {{message: Message, receivedOn: number, timerOn: number}} node The node
    * object to be renewed
