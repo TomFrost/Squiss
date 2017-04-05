@@ -5,13 +5,6 @@
 'use strict'
 
 /**
- * The number of seconds to place the API call to change the VisibilityTimeout in advance
- * of its expiration time.
- * @type {number}
- */
-const API_CALL_LEAD_MS = 5000
-
-/**
  * The maximum age, in milliseconds, that a message can reach before AWS will no longer accept VisibilityTimeout
  * extensions.
  * @type {number}
@@ -24,7 +17,8 @@ const MAX_MESSAGE_AGE_MS = 43200000
  */
 const optDefaults = {
   visibilityTimeoutSecs: 30,
-  noExtensionsAfterSecs: MAX_MESSAGE_AGE_MS / 1000
+  noExtensionsAfterSecs: MAX_MESSAGE_AGE_MS / 1000,
+  advancedCallMs: 5000
 }
 
 /**
@@ -47,7 +41,18 @@ class TimeoutExtender {
   /**
    * Creates a new TimeoutExtender.
    * @param {Squiss} squiss The Squiss instance on which this extender should operate
-   * @param {Object} opts
+   * @param {Object} opts An object containing options mappings
+   * @param {number} [opts.visibilityTimeoutSecs=30] The queue's VisibilityTimeout, in
+   * seconds. This will be used to know when to extend a message. It will also be the
+   * amount of time by which the timeout gets extended.
+   * @param {number} [opts.noExtensionsAfterSecs=43200] The number of seconds after which
+   * a message's VisibilityTimeout should not be extended. The default and maximum value
+   * (imposed by AWS) is 43200 (12 hours).
+   * @param {number} [opts.advancedCallMs=5000] The amount of time before a message's
+   * VisibilityTimeout expiration to make the API call to extend it. Setting this too
+   * high will cause a message to be extended within a time frame where it may be deleted
+   * anyway; setting too low may cause the message to expire before the API call can
+   * complete. The max is `opts.visibilityTimeoutSecs * 1000`.
    */
   constructor(squiss, opts) {
     this._opts = Object.assign({}, optDefaults, opts)
@@ -60,6 +65,7 @@ class TimeoutExtender {
     this._squiss.on('message', msg => this.addMessage(msg))
     this._visTimeout = this._opts.visibilityTimeoutSecs * 1000
     this._stopAfter = Math.min(this._opts.noExtensionsAfterSecs * 1000, MAX_MESSAGE_AGE_MS)
+    this._apiLeadMs = Math.min(this._opts.advancedCallMs, this._visTimeout)
   }
 
   /**
@@ -71,7 +77,7 @@ class TimeoutExtender {
     this._addNode({
       message,
       receivedOn: now,
-      timerOn: now + this._visTimeout - API_CALL_LEAD_MS
+      timerOn: now + this._visTimeout - this._apiLeadMs
     })
   }
 
@@ -126,18 +132,19 @@ class TimeoutExtender {
   }
 
   /**
-   * Gets the current millisecond age of a tracked message, projected `API_CALL_LEAD_MS` into the future.
+   * Gets the current millisecond age of a tracked message, projected `opts.advancedCallMs`
+   * into the future.
    * @param node The node to be checked
    * @returns {number} The age of the message in milliseconds
    * @private
    */
   _getNodeAge(node) {
-    return Date.now() - node.receivedOn + API_CALL_LEAD_MS
+    return Date.now() - node.receivedOn + this._apiLeadMs
   }
 
   /**
    * Called internally when the head of the linked list has changed in any way. This
-   * function is responsible for mantaining the timer that determines the tracker's next
+   * function is responsible for maintaining the timer that determines the tracker's next
    * action.
    * @returns {boolean} true if a timer was set in response to the changed head; false
    * otherwise.
@@ -155,7 +162,7 @@ class TimeoutExtender {
   }
 
   /**
-   * Extends the VisbilityTimeout of the message contained in the provided wrapper node,
+   * Extends the VisibilityTimeout of the message contained in the provided wrapper node,
    * and moves the node to the tail of the linked list.
    * @param {{message: Message, receivedOn: number, timerOn: number}} node The node
    * object to be renewed
@@ -163,7 +170,8 @@ class TimeoutExtender {
    */
   _renewNode(node) {
     const extendByMs = Math.min(this._visTimeout, MAX_MESSAGE_AGE_MS - this._getNodeAge(node))
-    this._squiss.changeMessageVisibility(node.message, Math.floor(extendByMs / 1000))
+    const extendBySecs = Math.floor(extendByMs / 1000)
+    this._squiss.changeMessageVisibility(node.message, extendBySecs)
       .then(() => this._squiss.emit('timeoutExtended', node.message))
       .catch(err => {
         if (err.message.match(/Message does not exist or is not available/)) {
@@ -174,7 +182,7 @@ class TimeoutExtender {
         }
       })
     this._deleteNode(node)
-    node.timerOn = Date.now() + extendByMs
+    node.timerOn = Date.now() + extendBySecs * 1000
     this._addNode(node)
   }
 }
