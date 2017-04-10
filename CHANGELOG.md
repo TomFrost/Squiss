@@ -7,7 +7,7 @@ Nothing yet!
 ## [v2.2.1]
 ### Fixed
 - The `advancedCallMs` option had no effect unless passed to TimeoutExtender directly, which no sane person would do.
-- The `noExtensionsAfterSecs` option defaulted to zero, which led to messages never be auto-extended unless a custom value was passed. 
+- The `noExtensionsAfterSecs` option defaulted to zero, which led to messages never being auto-extended unless a custom value was passed. 
 
 ## [v2.2.0]
 ### Added
