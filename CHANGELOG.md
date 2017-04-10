@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Development]
 Nothing yet!
 
+## [v2.2.1]
+### Fixed
+- The `advancedCallMs` option had no effect unless passed to TimeoutExtender directly, which no sane person would do.
+- The `noExtensionsAfterSecs` option defaulted to zero, which led to messages never be auto-extended unless a custom value was passed. 
+
 ## [v2.2.0]
 ### Added
 - The `advancedCallMs` option to tweak how far in advance of a message's VisibilityTimeout that a ChangeVisibilityTimeout call will be made
@@ -124,7 +129,8 @@ Nothing yet!
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.2.0...HEAD
+[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.2.1...HEAD
+[v2.2.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/TechnologyAdvice/Squiss/compare/v2.1.1...v2.2.0
 [v2.1.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.1.0...v2.1.1
 [v2.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.2...v2.1.0

@@ -35,8 +35,7 @@ const optDefaults = {
   delaySecs: 0,
   maxMessageBytes: 262144,
   messageRetentionSecs: 345600,
-  autoExtendTimeout: false,
-  noExtensionsAfterSecs: 0
+  autoExtendTimeout: false
 }
 
 /**
@@ -104,6 +103,8 @@ class Squiss extends EventEmitter {
    *    specified in opts.visibilityTimeoutSecs, or the queue's configured VisibilityTimeout if that option is not set.
    * @param {number} [opts.noExtensionsAfterSecs=43200] The age, in seconds, at which a message will no longer have
    *    its VisibilityTimeout automatically extended if opts.autoExtendTimeout is true.
+   * @param {number} [opts.advancedCallMs=5000] The number of milliseconds before a message expires to send the API
+   *    call to extend its VisibilityTimeout. Applicable only if opts.autoExtendTimeout is true.
    * @param {Object} [opts.queuePolicy] If specified, will be set as the access policy of the queue when
    *    {@link #createQueue} is called. See http://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html for
    *    more information.
@@ -516,10 +517,10 @@ class Squiss extends EventEmitter {
       if (this._opts.visibilityTimeoutSecs) return this._opts.visibilityTimeoutSecs
       return this.getQueueVisibilityTimeout()
     }).then(visibilityTimeoutSecs => {
-      this._timeoutExtender = new TimeoutExtender(this, {
-        visibilityTimeoutSecs,
-        noExtensionsAfterSecs: this._opts.noExtensionsAfterSecs
-      })
+      const opts = { visibilityTimeoutSecs }
+      if (this._opts.noExtensionsAfterSecs) opts.noExtensionsAfterSecs = this._opts.noExtensionsAfterSecs
+      if (this._opts.advancedCallMs) opts.advancedCallMs = this._opts.advancedCallMs
+      this._timeoutExtender = new TimeoutExtender(this, opts)
     })
   }
 

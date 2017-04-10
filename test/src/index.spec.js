@@ -767,15 +767,25 @@ describe('index', () => {
         should.exist(inst._timeoutExtender)
         inst._timeoutExtender.should.not.equal(null)
         inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(31)
+        inst._timeoutExtender._opts.noExtensionsAfterSecs.should.equal(43200)
+        inst._timeoutExtender._opts.advancedCallMs.should.equal(5000)
       })
     })
-    it('constructs a TimeoutExtender with a custom VisibilityTimeout', () => {
-      inst = new Squiss({ queueUrl: 'foo', autoExtendTimeout: true, visibilityTimeoutSecs: 53 })
+    it('constructs a TimeoutExtender with custom options', () => {
+      inst = new Squiss({
+        queueUrl: 'foo',
+        autoExtendTimeout: true,
+        visibilityTimeoutSecs: 53,
+        noExtensionsAfterSecs: 400,
+        advancedCallMs: 4500
+      })
       inst.sqs = new SQSStub()
       return inst.start().then(() => {
         should.exist(inst._timeoutExtender)
         inst._timeoutExtender.should.not.equal(null)
         inst._timeoutExtender._opts.visibilityTimeoutSecs.should.equal(53)
+        inst._timeoutExtender._opts.noExtensionsAfterSecs.should.equal(400)
+        inst._timeoutExtender._opts.advancedCallMs.should.equal(4500)
       })
     })
   })
