@@ -179,7 +179,7 @@ The name of the SNS topic to which this message was posted. Included for conveni
 Deletes the message from SQS. Either this or `message.keep()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.
 
 #### message.keep()
-Instructs Squiss that you're not planning to delete a message, but it should no longer be considered "in-flight". Either this or `message.del()` _must_ be called on each message Quiss delivers in order to maintain an accurate inFlight count.
+Instructs Squiss that you're not planning to delete a message, but it should no longer be considered "in-flight". Either this, `message.del()`, or `message.release()` _must_ be called on each message Squiss delivers in order to maintain an accurate inFlight count.
 
 #### message.release()
 Changes the visibility timeout of the message to 0.
