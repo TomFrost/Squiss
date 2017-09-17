@@ -1,4 +1,4 @@
-# Squiss [![Build Status](https://travis-ci.org/TechnologyAdvice/Squiss.svg?branch=master)](https://travis-ci.org/TechnologyAdvice/Squiss) [![Code Climate](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/gpa.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss) [![Test Coverage](https://codeclimate.com/github/TechnologyAdvice/Squiss/badges/coverage.svg)](https://codeclimate.com/github/TechnologyAdvice/Squiss/coverage)
+# Squiss [![Build Status](https://travis-ci.org/TomFrost/Squiss.svg?branch=master)](https://travis-ci.org/TomFrost/Squiss)
 High-volume Amazon SQS Poller and single-queue client for Node.js 4 and up
 
 ```javascript
@@ -194,4 +194,8 @@ The raw, unprocessed SQS response object as delivered from the aws-sdk.
 Squiss supports Node 4 LTS and higher. For 0.12 support, consider compiling with Babel or using Squiss version 0.x.
 
 ## License
-Squiss is Copyright (c) 2015-2017 TechnologyAdvice, released under the ultra-permissive ISC license. See LICENSE.txt for details.
+Squiss is Copyright (c) 2017 Tom Shawver, released under the ultra-permissive ISC license. See LICENSE.txt for details.
+
+## Credits
+Squiss was originally created at [TechnologyAdvice](http://www.technologyadvice.com) in Nashville, TN.
+

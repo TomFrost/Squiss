@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 TechnologyAdvice
+ * Copyright (c) 2017 Tom Shawver
  */
 
 'use strict'

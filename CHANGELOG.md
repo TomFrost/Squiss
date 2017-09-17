@@ -61,7 +61,7 @@ Nothing yet!
 - Messages can also be returned to the queue with immediate availablility through `squiss.releaseMessage`
 
 ### Fixed
-- Deleting messages by handle now works. The Message ID used will be the position of the message in the delete queue, 1-indexed. ([#13](https://github.com/TechnologyAdvice/Squiss/issues/13))
+- Deleting messages by handle now works. The Message ID used will be the position of the message in the delete queue, 1-indexed. ([#13](https://github.com/TomFrost/Squiss/issues/13))
 
 ### Changed
 - Tests now use dirty-chai to work around Chai's cardinal sin of allowing nonexistent assertions to be called without error
@@ -129,21 +129,21 @@ Nothing yet!
 ### Added
 - Initial release
 
-[Development]: https://github.com/TechnologyAdvice/Squiss/compare/v2.2.1...HEAD
-[v2.2.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.2.0...v2.2.1
-[v2.2.0]: https://github.com/TechnologyAdvice/Squiss/compare/v2.1.1...v2.2.0
-[v2.1.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.1.0...v2.1.1
-[v2.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.2...v2.1.0
-[v2.0.2]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.1...v2.0.2
-[v2.0.1]: https://github.com/TechnologyAdvice/Squiss/compare/v2.0.0...v2.0.1
-[v2.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.1.0...v2.0.0
-[v1.1.0]: https://github.com/TechnologyAdvice/Squiss/compare/v1.0.0...v1.1.0
-[v1.0.0]: https://github.com/TechnologyAdvice/Squiss/compare/v0.7.0...v1.0.0
-[v0.7.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.6.0...v0.7.0
-[v0.6.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.1...0.6.0
-[v0.5.1]: https://github.com/TechnologyAdvice/Squiss/compare/0.5.0...0.5.1
-[v0.5.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.4.0...0.5.0
-[v0.4.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.3.1...0.4.0
-[v0.3.1]: https://github.com/TechnologyAdvice/Squiss/compare/0.3.0...0.3.1
-[v0.3.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.2.0...0.3.0
-[v0.2.0]: https://github.com/TechnologyAdvice/Squiss/compare/0.1.0...0.2.0
+[Development]: https://github.com/TomFrost/Squiss/compare/v2.2.1...HEAD
+[v2.2.1]: https://github.com/TomFrost/Squiss/compare/v2.2.0...v2.2.1
+[v2.2.0]: https://github.com/TomFrost/Squiss/compare/v2.1.1...v2.2.0
+[v2.1.1]: https://github.com/TomFrost/Squiss/compare/v2.1.0...v2.1.1
+[v2.1.0]: https://github.com/TomFrost/Squiss/compare/v2.0.2...v2.1.0
+[v2.0.2]: https://github.com/TomFrost/Squiss/compare/v2.0.1...v2.0.2
+[v2.0.1]: https://github.com/TomFrost/Squiss/compare/v2.0.0...v2.0.1
+[v2.0.0]: https://github.com/TomFrost/Squiss/compare/v1.1.0...v2.0.0
+[v1.1.0]: https://github.com/TomFrost/Squiss/compare/v1.0.0...v1.1.0
+[v1.0.0]: https://github.com/TomFrost/Squiss/compare/v0.7.0...v1.0.0
+[v0.7.0]: https://github.com/TomFrost/Squiss/compare/0.6.0...v0.7.0
+[v0.6.0]: https://github.com/TomFrost/Squiss/compare/0.5.1...0.6.0
+[v0.5.1]: https://github.com/TomFrost/Squiss/compare/0.5.0...0.5.1
+[v0.5.0]: https://github.com/TomFrost/Squiss/compare/0.4.0...0.5.0
+[v0.4.0]: https://github.com/TomFrost/Squiss/compare/0.3.1...0.4.0
+[v0.3.1]: https://github.com/TomFrost/Squiss/compare/0.3.0...0.3.1
+[v0.3.0]: https://github.com/TomFrost/Squiss/compare/0.2.0...0.3.0
+[v0.2.0]: https://github.com/TomFrost/Squiss/compare/0.1.0...0.2.0

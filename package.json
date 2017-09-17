@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TechnologyAdvice/Squiss.git"
+    "url": "git+https://github.com/TomFrost/Squiss.git"
   },
   "files": [
     "src"
@@ -30,12 +30,12 @@
     "poller",
     "queue"
   ],
-  "author": "TechnologyAdvice <devteam+squiss@technologyadvice.com>",
+  "author": "Tom Shawver <tom@frosteddesign.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/TechnologyAdvice/Squiss/issues"
+    "url": "https://github.com/TomFrost/Squiss/issues"
   },
-  "homepage": "https://github.com/TechnologyAdvice/Squiss#readme",
+  "homepage": "https://github.com/TomFrost/Squiss#readme",
   "dependencies": {
     "aws-sdk": "^2.10.0"
   },
